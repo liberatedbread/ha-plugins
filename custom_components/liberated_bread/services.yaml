@@ -1,0 +1,37 @@
+send_command:
+  name: Send command
+  description: Send a named OpenGreenIoT command to a managed BLE device.
+  fields:
+    entry_id:
+      name: Config entry
+      description: Optional config entry id. Required only when multiple Liberated Bread entries are configured.
+      selector:
+        text:
+    device_address:
+      name: Device address
+      description: BLE address for the managed device.
+      required: true
+      selector:
+        text:
+    service_uuid:
+      name: Service UUID
+      description: Optional BLE service UUID.
+      selector:
+        text:
+    characteristic_uuid:
+      name: Characteristic UUID
+      description: Optional BLE characteristic UUID. If omitted, the command name is resolved from the spec.
+      selector:
+        text:
+    command:
+      name: Command
+      description: Spec command name to invoke.
+      required: true
+      selector:
+        text:
+    params:
+      name: Parameters
+      description: Command parameter mapping.
+      default: {}
+      selector:
+        object:

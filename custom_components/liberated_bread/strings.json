@@ -1,0 +1,35 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Liberated Bread",
+        "description": "Choose the supported device type to scan for.",
+        "data": {
+          "spec_name": "Device type"
+        }
+      },
+      "scan": {
+        "title": "Select devices",
+        "description": "Choose nearby {device_type} devices to manage.",
+        "data": {
+          "device_addresses": "Devices"
+        }
+      },
+      "encryption": {
+        "title": "Encryption key",
+        "description": "{device_type} uses AES-128-ECB for commands. Enter a 16-byte key as 32 hex characters, 16 text characters, or a secrets.yaml reference like secrets://shining_mask_key.",
+        "data": {
+          "aes_ecb_key": "AES-128-ECB key"
+        }
+      }
+    },
+    "error": {
+      "no_devices_found": "No matching Bluetooth devices were found.",
+      "missing_key": "An encryption key is required for this device type."
+    },
+    "abort": {
+      "no_specs": "No bundled device specs could be loaded.",
+      "unknown_spec": "The configured device spec is no longer available."
+    }
+  }
+}

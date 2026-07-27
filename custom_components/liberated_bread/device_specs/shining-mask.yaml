@@ -1,0 +1,128 @@
+# Shining Mask device spec
+# Copyright 2026 Pigs Can Fly Labs LLC
+# SPDX-License-Identifier: Apache-2.0
+
+device:
+  name: "Shining Mask"
+  manufacturer: "Shenzhen Shining Bright Technology"
+  manufacturer_status: "unsupported"
+  protocol: "ble"
+  notes: >
+    LED face mask with 2074 RGB LEDs, 16-pixel-tall display.
+    All commands to the Command characteristic are AES-128 ECB encrypted with a
+    fixed key (published in open-source implementations). No pairing/authentication.
+    Image data to the upload characteristic is sent unencrypted.
+    FCC ID: 2AOLN-16.
+    Color order for FC/BC (foreground/background color) commands is R,B,G (not R,G,B).
+    CONFIDENCE: command structure and R,B,G color order HIGH (well-documented in
+    open-source shining-mask implementations, package cn.com.heaton.shiningmask).
+    The AES key is UNRECOVERABLE here (the well-known key ships in native code /
+    third-party repos, not as a constant in this evidence set) — static_key OMITTED.
+  identification:
+    local_name_prefix: ""
+    service_uuids:
+      - "0000fff0-0000-1000-8000-00805f9b34fb"
+
+# Custom consumer-side handler for the shining-mask AES-128-ECB command framing
+# and R,B,G color encoding. Declarative.
+protocol_handler: "shiningmask_ecb"
+
+services:
+  - uuid: "d44bc439-abfd-45a2-b575-925416129600"
+    name: "QPP Command Service (encrypted)"
+    notes: >
+      Quintic Private Profile (QPP): the service UUID intentionally equals its first
+      characteristic UUID (d44bc439-...-925416129600). This is the Quintic/NXP QN-series
+      convention, NOT a copy-paste error. The device advertises the TI-family
+      0000fff0 UUID (see identification.service_uuids), but the app communicates over
+      this QPP service; no separate 0000fff0 service block is defined because the
+      shining-mask codebase (cn.com.heaton.shiningmask) was not available to confirm one.
+    characteristics:
+      - uuid: "d44bc439-abfd-45a2-b575-925416129600"
+        name: "Command"
+        properties: ["write"]
+        encryption:
+          algorithm: "aes-128-ecb"
+          key_derivation: "static"
+        notes: >
+          onEncrypt() AES-128-ECB with a fixed key is applied before every write to
+          this characteristic. static_key OMITTED (must be hex; the well-known key is
+          not carried as a recoverable constant in this evidence set — note it rather
+          than invent it). Confidence: HIGH structure, key not included here.
+        commands:
+          set_brightness:
+            description: "Set brightness (AES encrypted). Plaintext: [0x06, 'LIGHT', brightness]"
+            template: [0x06, 0x4C, 0x49, 0x47, 0x48, 0x54, "{brightness}"]
+            parameters:
+              brightness:
+                type: "uint8"
+                min: 0
+                max: 255
+          set_mode:
+            description: "Set display mode. 0=off, 1=steady, 2=blink, 3=scroll R-to-L, 4=scroll L-to-R, 5=steady custom"
+            template: [0x05, 0x4D, 0x4F, 0x44, 0x45, "{mode}"]
+            parameters:
+              mode:
+                type: "uint8"
+                min: 0
+                max: 5
+          set_speed:
+            description: "Set animation speed"
+            template: [0x06, 0x53, 0x50, 0x45, 0x45, 0x44, "{speed}"]
+            parameters:
+              speed:
+                type: "uint8"
+                min: 0
+                max: 255
+          show_builtin_image:
+            description: "Display built-in static image (0x00-0x69, 106 images)"
+            template: [0x05, 0x49, 0x4D, 0x41, 0x47, "{image_id}"]
+            parameters:
+              image_id:
+                type: "uint8"
+                min: 0
+                max: 105
+          play_builtin_animation:
+            description: "Play built-in animation (0x00-0x45, 70 animations)"
+            template: [0x05, 0x41, 0x4E, 0x49, 0x4D, "{anim_id}"]
+            parameters:
+              anim_id:
+                type: "uint8"
+                min: 0
+                max: 69
+          set_foreground_color:
+            description: "Set text foreground color. Channels are emitted in R,B,G order (color_order: rbg)."
+            template: [0x06, 0x46, 0x43, 0x01, "{red}", "{blue}", "{green}"]
+            parameters:
+              color_order: "rbg"
+              red:
+                type: "uint8"
+                min: 0
+                max: 255
+              blue:
+                type: "uint8"
+                min: 0
+                max: 255
+              green:
+                type: "uint8"
+                min: 0
+                max: 255
+
+      - uuid: "d44bc439-abfd-45a2-b575-925416129601"
+        name: "Notification"
+        properties: ["notify"]
+
+      - uuid: "d44bc439-abfd-45a2-b575-92541612960a"
+        name: "Image Upload"
+        properties: ["write"]
+
+      - uuid: "d44bc439-abfd-45a2-b575-92541612960b"
+        name: "Audio Visualizer"
+        properties: ["write"]
+
+entities:
+  - platform: "light"
+    name: "Mask Display"
+    features: ["brightness", "color"]
+    commands:
+      set_brightness: "set_brightness"

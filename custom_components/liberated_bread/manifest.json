@@ -1,0 +1,36 @@
+{
+  "domain": "liberated_bread",
+  "name": "Liberated Bread",
+  "codeowners": ["@pigscanfly"],
+  "config_flow": true,
+  "dependencies": ["bluetooth"],
+  "documentation": "https://github.com/liberatedbread/ha-plugins/tree/main/custom_components/liberated_bread",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/liberatedbread/ha-plugins/issues",
+  "bluetooth": [
+    {"connectable": true, "service_uuid": "0000fa02-0000-1000-8000-00805f9b34fb"},
+    {"connectable": true, "service_uuid": "0000fee0-0000-1000-8000-00805f9b34fb"},
+    {"connectable": true, "service_uuid": "0000fee9-0000-1000-8000-00805f9b34fb"},
+    {"connectable": true, "service_uuid": "0000ff20-0000-1000-8000-00805f9b34fb"},
+    {"connectable": true, "service_uuid": "0000ffe0-0000-1000-8000-00805f9b34fb"},
+    {"connectable": true, "service_uuid": "0000fff0-0000-1000-8000-00805f9b34fb"},
+    {"connectable": true, "service_uuid": "048a00ff-cd06-4d57-a048-ccd5cb9f8f43"},
+    {"connectable": true, "service_uuid": "6ac400fb-5bc3-4e99-acb8-f85d442b9ae4"},
+    {"connectable": true, "service_uuid": "6e400001-b5a3-f393-e0a9-e50e24dcca9e"},
+    {"connectable": true, "service_uuid": "8a7100fe-babe-b7ae-074f-86d0c0b50089"},
+    {"connectable": true, "service_uuid": "8e320200-64d2-11e6-bdf4-0800200c9a66"},
+    {"connectable": true, "service_uuid": "9c6f00fc-0420-41c1-bd98-7a015c45dc5a"},
+    {"connectable": true, "service_uuid": "f64000fd-6f49-4b5b-9bf8-76b3775d4d01"},
+    {"connectable": true, "service_uuid": "fc543621-236c-4c94-8fa9-944a3e5353fa"},
+    {"connectable": true, "service_uuid": "fc543622-236c-4c94-8fa9-944a3e5353fa"}
+  ],
+  "requirements": [
+    "pyyaml>=6.0",
+    "bleak>=0.22.0",
+    "pycryptodome>=3.20.0",
+    "zeroconf>=0.47.0",
+    "aiohttp>=3.8.0",
+    "defusedxml>=0.7.0"
+  ],
+  "version": "0.1.0"
+}

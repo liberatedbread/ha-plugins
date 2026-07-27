@@ -1,0 +1,187 @@
+# LEDs2RAVE4 / Lunchbox Dream LED (SP107E/SP110E) device spec
+# Copyright 2026 Pigs Can Fly Labs LLC
+# SPDX-License-Identifier: Apache-2.0
+
+device:
+  name: "SP107E/SP110E LED Controller"
+  manufacturer: "SPLED"
+  manufacturer_status: "unsupported"
+  protocol: "ble"
+  notes: >
+    SPI LED pixel controllers used in LEDs2RAVE4 / Lunchbox Dream LED products.
+    Two distinct variants that do NOT share the same BLE service UUID:
+      * SP107E ("LED Chord") — Nordic UART service 0xFFE0, single characteristic
+        0xFFE1 (write + notify). Fixed 4-byte command frame [d0, d1, d2, cmd_byte];
+        no length prefix, no checksum. check_device (cmd 0x01) returns 15 bytes.
+        Adds music-reactive modes and matrix support.
+      * SP110E ("LED Hue") — service 0xFF20, characteristic 0xFF21 (command) and
+        0xFF22 (data). Framed transport: 4-byte length + 2-byte command ID + 4-byte
+        serial number + content + 1-byte SUM checksum (length_prefix true,
+        checksum = sum).
+    CONFIDENCE: variant split, service/characteristic UUIDs and SP107E core opcodes
+    (led_on 0xAA, led_off 0xBB, check_device 0x01, set_rgb cmd 0x04) HIGH. The
+    detailed per-opcode command tables below were decompiled to scratch from a
+    secondary source and are NOT all independently re-verified — treat individual
+    effect/brightness opcodes as MEDIUM and confirm remaining opcodes via live
+    capture. The SP110E 4-byte-style opcodes below predate the confirmed 0xFF20
+    framed transport and need re-mapping onto that framing (follow-up).
+    NOTE: a sibling app "iledcolor" (com.led.iledcolor) exposed NO BLE UUIDs
+    statically (likely cloud-only) — flagged for live capture.
+  identification:
+    local_name_prefix: "SP1"
+    service_uuids:
+      - "0000ffe0-0000-1000-8000-00805f9b34fb"
+      - "0000ff20-0000-1000-8000-00805f9b34fb"
+  variants:
+    - model: "SP107E"
+      identification:
+        local_name_prefix: "SP107e"
+        service_uuids:
+          - "0000ffe0-0000-1000-8000-00805f9b34fb"
+    - model: "SP110E"
+      identification:
+        local_name_prefix: "LBXDRMSKIN_LED_"
+        service_uuids:
+          - "0000ff20-0000-1000-8000-00805f9b34fb"
+
+services:
+  # SP107E — Nordic UART, 4-byte fixed command frame
+  - uuid: "0000ffe0-0000-1000-8000-00805f9b34fb"
+    name: "SP107E LED Control Service (Nordic UART)"
+    characteristics:
+      - uuid: "0000ffe1-0000-1000-8000-00805f9b34fb"
+        name: "Control"
+        properties: ["write", "notify"]
+        notes: >
+          Fixed 4-byte command frame [d0, d1, d2, cmd_byte]; no length prefix,
+          no checksum. Notifications (e.g. check_device's 15-byte reply) arrive
+          on this same characteristic. Confidence: core opcodes HIGH, others MEDIUM.
+        commands:
+          sp107e_check_device:
+            description: "SP107E: probe/handshake (cmd 0x01); response is 15 bytes"
+            value: [0x00, 0x00, 0x00, 0x01]
+          sp107e_power_on:
+            description: "SP107E: Turn on (cmd 0xAA)"
+            value: [0x00, 0x00, 0x00, 0xAA]
+          sp107e_power_off:
+            description: "SP107E: Turn off (cmd 0xBB)"
+            value: [0x00, 0x00, 0x00, 0xBB]
+          sp107e_set_color:
+            description: "SP107E: Set static RGB color (cmd 0x04)"
+            template: ["{red}", "{green}", "{blue}", 0x04]
+            parameters:
+              color_order: "rgb"
+              red:
+                type: "uint8"
+                min: 0
+                max: 255
+              green:
+                type: "uint8"
+                min: 0
+                max: 255
+              blue:
+                type: "uint8"
+                min: 0
+                max: 255
+          sp107e_set_brightness:
+            description: "SP107E: Set brightness (secondary source, verify)"
+            template: ["{level}", 0x00, 0x00, 0x0A]
+            parameters:
+              level:
+                type: "uint8"
+                min: 0
+                max: 255
+          sp107e_set_effect:
+            description: "SP107E: Set effect 0x01-0xB4 dynamic, 0xB5 static (secondary source, verify)"
+            template: ["{mode}", 0x00, 0x00, 0x08]
+            parameters:
+              mode:
+                type: "uint8"
+                min: 0
+                max: 249
+          sp107e_status_query:
+            description: "SP107E: Query status, returns 26 bytes in 2 packets (secondary source, verify)"
+            value: [0x00, 0x00, 0x00, 0x02]
+
+  # SP110E — framed transport (len + cmdID + serial + content + 1-byte sum)
+  - uuid: "0000ff20-0000-1000-8000-00805f9b34fb"
+    name: "SP110E LED Control Service"
+    characteristics:
+      - uuid: "0000ff21-0000-1000-8000-00805f9b34fb"
+        name: "Command"
+        properties: ["write", "notify"]
+        framing:
+          length_prefix: true
+          checksum: "sum"
+        notes: >
+          Confirmed transport: 4-byte length + 2-byte command ID + 4-byte serial
+          number + content + 1-byte SUM checksum. The 4-byte-style opcodes below are
+          from a secondary source and predate this framing — they need re-mapping
+          onto the framed packet (follow-up). Confidence: framing HIGH, opcodes MEDIUM.
+        commands:
+          sp110e_power_on:
+            description: "SP110E: Turn on (secondary source, verify against framed transport)"
+            value: [0x00, 0x00, 0x00, 0xAA]
+          sp110e_power_off:
+            description: "SP110E: Turn off (secondary source, verify)"
+            value: [0x00, 0x00, 0x00, 0xAB]
+          sp110e_set_color:
+            description: "SP110E: Set static RGB color (secondary source, verify)"
+            template: ["{red}", "{green}", "{blue}", 0x1E]
+            parameters:
+              color_order: "rgb"
+              red:
+                type: "uint8"
+                min: 0
+                max: 255
+              green:
+                type: "uint8"
+                min: 0
+                max: 255
+              blue:
+                type: "uint8"
+                min: 0
+                max: 255
+          sp110e_set_brightness:
+            description: "SP110E: Set brightness 0x00-0xFF (secondary source, verify)"
+            template: ["{level}", 0x00, 0x00, 0x2A]
+            parameters:
+              level:
+                type: "uint8"
+                min: 0
+                max: 255
+          sp110e_set_effect:
+            description: "SP110E: Set effect 0x01-0x78 dynamic, 0x79 static (secondary source, verify)"
+            template: ["{mode}", 0x00, 0x00, 0x2C]
+            parameters:
+              mode:
+                type: "uint8"
+                min: 0
+                max: 121
+          sp110e_set_speed:
+            description: "SP110E: Set animation speed 0x01-0xBA (secondary source, verify)"
+            template: ["{speed}", 0x00, 0x00, 0x03]
+            parameters:
+              speed:
+                type: "uint8"
+                min: 1
+                max: 186
+          sp110e_status_query:
+            description: "SP110E: Query device status, returns 12 bytes (secondary source, verify)"
+            value: [0x00, 0x00, 0x00, 0x10]
+
+      - uuid: "0000ff22-0000-1000-8000-00805f9b34fb"
+        name: "Data"
+        properties: ["write"]
+        notes: "SP110E bulk data channel (used alongside the 0xFF21 command channel)."
+
+entities:
+  - platform: "light"
+    name: "LED Strip"
+    features: ["brightness", "color"]
+    state_characteristic: "0000ffe1-0000-1000-8000-00805f9b34fb"
+    commands:
+      turn_on: "sp107e_power_on"
+      turn_off: "sp107e_power_off"
+      set_color: "sp107e_set_color"
+      set_brightness: "sp107e_set_brightness"
