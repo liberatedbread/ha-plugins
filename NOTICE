@@ -1,0 +1,16 @@
+ha-plugins
+Copyright 2026 Pigs Can Fly Labs LLC
+
+This repository includes the Moonshine Home Assistant add-on imported from
+PigsCanFlyLabs/moonshine4homeassistant and the Liberated Bread Home Assistant
+custom integration imported from PigsCanFlyLabs/liberatedbread-homeassistant.
+
+The Moonshine add-on image installs and bundles third-party software at build
+time. Review the upstream license terms for each project before redistribution:
+
+- moonshine-voice: https://github.com/usefulsensors/moonshine
+- torch: https://github.com/pytorch/pytorch
+- transformers: https://github.com/huggingface/transformers
+- onnx-asr: https://github.com/istupakov/onnx-asr
+- holdenk/wyoming-moonshine-ext: https://github.com/holdenk/wyoming-moonshine-ext
+- wyoming: https://github.com/OHF-Voice/wyoming

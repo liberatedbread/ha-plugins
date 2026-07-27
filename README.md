@@ -31,16 +31,15 @@ This repository serves two Home Assistant distribution paths from one repo:
 
 ### Install With HACS
 
-1. In HACS, open **Integrations**.
-2. Open the menu and choose **Custom repositories**.
-3. Add this repository URL:
+1. In HACS, choose **... > Custom repositories**.
+2. Add this repository URL:
 
    ```text
    https://github.com/liberatedbread/ha-plugins
    ```
 
-4. Select category **Integration**.
-5. Install **Liberated Bread** and restart Home Assistant.
+3. Select category **Integration**.
+4. Install **Liberated Bread** and restart Home Assistant.
 
 ### Bundled Device Specs
 
