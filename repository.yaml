@@ -1,0 +1,4 @@
+# https://developers.home-assistant.io/docs/add-ons/repository#repository-configuration
+name: Liberated Bread Home Assistant Plugins
+url: 'https://github.com/liberatedbread/ha-plugins'
+maintainer: Holden <holden@pigscanfly.ca>
