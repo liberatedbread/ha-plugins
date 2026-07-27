@@ -1,0 +1,34 @@
+#!/command/with-contenv bashio
+# vim: ft=bash
+# shellcheck shell=bash
+# ==============================================================================
+# Start Whisper service
+# ==============================================================================
+flags=()
+
+if [ "$(uname -m)" == "x86_64" ] && ! grep -qw 'avx' /proc/cpuinfo; then
+    bashio::log.warning "Your CPU does not support Advanced Vector Extensions (AVX). Whisper will run slower than normal."
+fi
+
+model="$(bashio::config 'model')"
+
+if bashio::config.true 'debug_logging'; then
+    flags+=('--debug')
+fi
+
+if bashio::config.has_value 'hass_token'; then
+   hass_token="$(bashio::config 'hass_token')"
+else
+   hass_token="${SUPERVISOR_TOKEN}"
+fi
+
+mkdir -p /data/models
+
+# shellcheck disable=SC2068
+exec python3 -m wyoming_moonshine \
+    --uri 'tcp://0.0.0.0:10300' \
+    --zeroconf \
+    --model "${model}" \
+    --language "$(bashio::config 'language')" \
+    --data-dir /data \
+    --download-dir /data/models ${flags[@]}

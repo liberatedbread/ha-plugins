@@ -1,0 +1,603 @@
+# Belkin Wemo Smart Devices — Device Specification
+# Copyright 2026 Pigs Can Fly Labs LLC
+# SPDX-License-Identifier: Apache-2.0
+#
+# Discovery-first catalog for all publicly reverse-engineered Wemo device
+# families covered by pywemo/Home Assistant/ouimeaux and the decoded Wemo APK.
+
+device:
+  name: "Belkin Wemo Smart Devices"
+  manufacturer: "Belkin"
+  manufacturer_status: "shutdown"
+  protocol: "wifi"
+  transport: "upnp"
+  notes: >
+    ALL Wemo devices are discovered via SSDP (Simple Service Discovery
+    Protocol). NO static IP configuration is needed. Send an M-SEARCH to
+    239.255.255.250:1900 with ST matching a device or service search target,
+    then fetch and parse setup.xml at the LOCATION URL to get the control URL,
+    UDN, friendly name, serial/MAC metadata, service list, and deviceType.
+
+    Discovery order: 1. SSDP M-SEARCH; 2. parse LOCATION /setup.xml;
+    3. match deviceType and UDN prefix to a variant; 4. call SOAP actions at
+    the service controlURL from setup.xml. Device ordering should use stable
+    identity first: UDN, then serialNumber, then macAddress, with friendlyName
+    used only as user-facing display text.
+
+    Port instability: Wemo Mini and related devices may change HTTP ports after
+    a power cycle or reconnect. Always rediscover with SSDP or probe ports
+    49152-49159 in the pywemo order recorded below.
+
+    CONFIDENCE: SSDP discovery and SOAP action values HIGH (verified by pywemo,
+    Home Assistant, ouimeaux lineage, and APK decompilation). Per-device command
+    mappings MEDIUM; verified against public libraries but not validated via
+    live capture for every appliance class.
+  identification:
+    ssdp:
+      multicast_group: "239.255.255.250"
+      multicast_port: 1900
+      method: "M-SEARCH * HTTP/1.1"
+      headers:
+        HOST: "239.255.255.250:1900"
+        MAN: "\"ssdp:discover\""
+        MX: "1"
+      search_targets:
+        - "urn:Belkin:service:basicevent:1"
+        - "urn:Belkin:device:controllee:1"
+        - "urn:Belkin:device:socket:1"
+        - "urn:Belkin:device:insight:1"
+        - "urn:Belkin:device:Lightswitch:1"
+        - "urn:Belkin:device:dimmer:1"
+        - "urn:Belkin:device:bridge:1"
+        - "urn:Belkin:device:Maker:1"
+        - "urn:Belkin:device:motion:1"
+        - "urn:Belkin:device:sensor:1"
+        - "urn:Belkin:device:outdoor:1"
+        - "ssdp:all"
+      response_headers:
+        location: "URL to fetch, normally http://<ip>:<port>/setup.xml"
+        usn: "UDN plus matching search target"
+        st: "Search target echoed by the device"
+      setup_xml_fields:
+        - "deviceType"
+        - "friendlyName"
+        - "UDN"
+        - "serialNumber"
+        - "macAddress"
+        - "modelName"
+        - "modelNumber"
+        - "serviceList"
+    ssid_prefix: "WeMo.Setup."
+    default_port: 49153
+    port_probe_list: [49153, 49152, 49154, 49151, 49155, 49156, 49157, 49158, 49159]
+    discovery_order:
+      - "Send SSDP M-SEARCH to 239.255.255.250:1900."
+      - "Read LOCATION from each unicast SSDP response."
+      - "Fetch LOCATION, usually /setup.xml."
+      - "Parse deviceType, UDN, friendlyName, serialNumber, macAddress, and serviceList."
+      - "Match variant by deviceType first and UDN prefix second."
+      - "Use each service controlURL from setup.xml for SOAP calls."
+    identity_keys:
+      primary: "UDN"
+      secondary: "serialNumber"
+      tertiary: "macAddress"
+      display: "friendlyName"
+    static_ip_required: false
+
+  discovery:
+    methods:
+      - type: "ssdp"
+        ssdp:
+          multicast_group: "239.255.255.250"
+          multicast_port: 1900
+          search_targets:
+            - "urn:Belkin:service:basicevent:1"
+            - "urn:Belkin:device:controllee:1"
+            - "urn:Belkin:device:socket:1"
+            - "urn:Belkin:device:insight:1"
+            - "urn:Belkin:device:Lightswitch:1"
+            - "urn:Belkin:device:dimmer:1"
+            - "urn:Belkin:device:bridge:1"
+            - "urn:Belkin:device:Maker:1"
+            - "urn:Belkin:device:motion:1"
+            - "urn:Belkin:device:sensor:1"
+            - "urn:Belkin:device:outdoor:1"
+            - "ssdp:all"
+            - "urn:Belkin:device:coffeemaker:1"
+            - "urn:Belkin:device:crockpot:1"
+            - "urn:Belkin:device:purifier:1"
+            - "urn:Belkin:device:heater:1"
+            - "urn:Belkin:device:humidifier:1"
+            - "urn:Belkin:device:humidifierb:1"
+          response_mapping:
+            location:
+              url: "LOCATION"
+              action: "fetch_xml"
+              parse:
+                device_identity:
+                  stable_keys:
+                    - source: "xml://device/UDN"
+                      key: "udn"
+                    - source: "xml://device/serialNumber"
+                      key: "serial"
+                    - source: "xml://device/macAddress"
+                      key: "mac"
+                  display:
+                    source: "xml://device/friendlyName"
+                  variant:
+                    source: "xml://device/deviceType"
+                control_endpoints:
+                  source: "xml://device/serviceList/service"
+                  fields:
+                    service_type: "serviceType"
+                    control_url: "controlURL"
+                    event_sub_url: "eventSubURL"
+          port_fallback: [49153, 49152, 49154, 49151, 49155, 49156, 49157, 49158, 49159]
+    identity:
+      stable_keys: ["udn", "serial", "mac"]
+      display: "friendlyName"
+    static_ip_required: false
+
+  variants:
+    - model: "F7C063"
+      name: "Wemo Mini Smart Plug"
+      identification:
+        device_type: "urn:Belkin:device:controllee:1"
+        alternate_device_types: ["urn:Belkin:device:socket:1"]
+        udn_prefixes: ["uuid:Socket"]
+        friendly_name_pattern: "WeMo"
+        apk_widgets: ["wemo_mini", "bundlemanager"]
+      characteristics:
+        - "Basic on/off smart plug."
+        - "Some firmware and APK mocks identify the Mini as socket:1."
+      services:
+        basicevent:
+          control_url: "/upnp/control/basicevent1"
+          event_sub_url: "/upnp/event/basicevent1"
+          service_type: "urn:Belkin:service:basicevent:1"
+          actions: ["GetBinaryState", "SetBinaryState", "GetFriendlyName", "ChangeFriendlyName", "ReSetup"]
+        metainfo:
+          control_url: "/upnp/control/metainfo1"
+          actions: ["GetMetaInfo", "GetExtMetaInfo"]
+        deviceinfo:
+          control_url: "/upnp/control/deviceinf1"
+          actions: ["GetDeviceInformation"]
+
+    - model: "WSP080"
+      name: "Wemo WiFi Smart Plug"
+      identification:
+        device_type: "urn:Belkin:device:socket:1"
+        udn_prefixes: ["uuid:Socket"]
+        friendly_name_pattern: "Wemo Smart Plug"
+        apk_widgets: ["wemo_smart_plug", "wemo_socket"]
+      characteristics:
+        - "Basic on/off smart plug."
+      services:
+        basicevent:
+          control_url: "/upnp/control/basicevent1"
+          event_sub_url: "/upnp/event/basicevent1"
+          service_type: "urn:Belkin:service:basicevent:1"
+          actions: ["GetBinaryState", "SetBinaryState", "GetFriendlyName", "ChangeFriendlyName", "GetSignalStrength"]
+        metainfo:
+          control_url: "/upnp/control/metainfo1"
+          actions: ["GetMetaInfo"]
+
+    - model: "F7C029"
+      name: "Wemo Insight Smart Plug"
+      identification:
+        device_type: "urn:Belkin:device:insight:1"
+        udn_prefixes: ["uuid:Insight"]
+        friendly_name_pattern: "Insight"
+        apk_widgets: ["wemo_insight", "wemo_group"]
+      characteristics:
+        - "Smart plug with power and energy monitoring."
+        - "InsightParams state 8 means on but load is in standby."
+      services:
+        basicevent:
+          control_url: "/upnp/control/basicevent1"
+          event_sub_url: "/upnp/event/basicevent1"
+          actions: ["GetBinaryState", "SetBinaryState", "GetInsightHomeSettings", "SetInsightHomeSettings"]
+        insight:
+          control_url: "/upnp/control/insight1"
+          event_sub_url: "/upnp/event/insight1"
+          service_type: "urn:Belkin:service:insight:1"
+          actions: ["GetInsightParams", "GetPowerThreshold", "SetPowerThreshold", "ResetPowerThreshold", "GetTodayKWH", "GetTodayONTime", "GetPower"]
+          response_fields:
+            InsightParams: "state|lastchange|onfor|ontoday|ontotal|timeperiod|wifipower|currentpower_mw|todaymw|totalmw|powerthreshold"
+
+    - model: "F7C030/F7C027/F7C076"
+      name: "Wemo Light Switch Gen1/Gen2/3-Way"
+      identification:
+        device_type: "urn:Belkin:device:Lightswitch:1"
+        udn_prefixes: ["uuid:Lightswitch-1_0", "uuid:Lightswitch-2_0", "uuid:Lightswitch-3_0", "uuid:Lightswitch"]
+        friendly_name_pattern: "Light Switch"
+        apk_widgets: ["wemo_lightswitch", "wemo_lightswitch_2gen", "wemo_lightswitch3way"]
+      characteristics:
+        - "Wall switch; Gen2 and 3-way variants may support long-press notifications."
+      services:
+        basicevent:
+          control_url: "/upnp/control/basicevent1"
+          event_sub_url: "/upnp/event/basicevent1"
+          actions: ["GetBinaryState", "SetBinaryState", "SimulateLongPress"]
+
+    - model: "F7C059"
+      name: "Wemo Dimmer v1"
+      identification:
+        device_type: "urn:Belkin:device:dimmer:1"
+        udn_prefixes: ["uuid:Dimmer-1_0", "uuid:Dimmer"]
+        friendly_name_pattern: "Dimmer"
+        apk_widgets: ["wemo_dimmer", "wemo_dimmer_calibration"]
+      characteristics:
+        - "Dimmer uses basicevent SetBinaryState with brightness=1-100."
+        - "APK mock data reuses socket:1, but public libraries use dimmer:1 for real hardware."
+      services:
+        basicevent:
+          control_url: "/upnp/control/basicevent1"
+          event_sub_url: "/upnp/event/basicevent1"
+          actions: ["GetBinaryState", "SetBinaryState", "Calibrate", "ConfigureDimmingRange", "ConfigureNightMode", "GetNightModeConfiguration"]
+
+    - model: "WDS060"
+      name: "Wemo Dimmer v2"
+      identification:
+        device_type: "urn:Belkin:device:dimmer:1"
+        udn_prefixes: ["uuid:Dimmer-2_0"]
+        friendly_name_pattern: "Dimmer"
+        apk_widgets: ["wemo_dimmer_v2"]
+      characteristics:
+        - "Same deviceType as Dimmer v1; distinguish by UDN prefix and model metadata."
+        - "Supports brightness through basicevent SetBinaryState brightness=1-100."
+      services:
+        basicevent:
+          control_url: "/upnp/control/basicevent1"
+          event_sub_url: "/upnp/event/basicevent1"
+          actions: ["GetBinaryState", "SetBinaryState", "Calibrate", "ConfigureDimmingRange", "ConfigureHushMode", "ConfigureNightMode"]
+
+    - model: "F7C043"
+      name: "Wemo Maker"
+      identification:
+        device_type: "urn:Belkin:device:Maker:1"
+        udn_prefixes: ["uuid:Maker"]
+        friendly_name_pattern: "Maker"
+        apk_widgets: ["wemo_maker"]
+      characteristics:
+        - "Relay plus sensor input."
+        - "Attribute list exposes Switch, Sensor, SwitchMode, and SensorPresent."
+      services:
+        basicevent:
+          control_url: "/upnp/control/basicevent1"
+          event_sub_url: "/upnp/event/basicevent1"
+          actions: ["GetBinaryState", "SetBinaryState"]
+        deviceevent:
+          control_url: "/upnp/control/deviceevent1"
+          event_sub_url: "/upnp/event/deviceevent1"
+          service_type: "urn:Belkin:service:deviceevent:1"
+          actions: ["GetAttributes", "SetAttributes", "GetAttributeList"]
+
+    - model: "WSP090"
+      name: "Wemo Outdoor Plug"
+      identification:
+        device_type: "urn:Belkin:device:outdoor:1"
+        udn_prefixes: ["uuid:OutdoorPlug"]
+        friendly_name_pattern: "Outdoor"
+        apk_widgets: ["wemo_outdoorplug"]
+      characteristics:
+        - "Outdoor smart plug; pywemo models it as a switch."
+      services:
+        basicevent:
+          control_url: "/upnp/control/basicevent1"
+          event_sub_url: "/upnp/event/basicevent1"
+          actions: ["GetBinaryState", "SetBinaryState"]
+
+    - model: "F7C031"
+      name: "Wemo Motion Sensor"
+      identification:
+        device_type: "urn:Belkin:device:motion:1"
+        alternate_device_types: ["urn:Belkin:device:sensor:1"]
+        udn_prefixes: ["uuid:Sensor"]
+        friendly_name_pattern: "Motion"
+        apk_widgets: ["wemo_sensor"]
+      characteristics:
+        - "Binary motion sensor. Some docs call this sensor:1; APK mock uses motion:1."
+      services:
+        basicevent:
+          control_url: "/upnp/control/basicevent1"
+          event_sub_url: "/upnp/event/basicevent1"
+          actions: ["GetBinaryState"]
+
+    - model: "F7C033"
+      name: "Wemo Bridge / Link"
+      identification:
+        device_type: "urn:Belkin:device:bridge:1"
+        udn_prefixes: ["uuid:Bridge"]
+        friendly_name_pattern: "Bridge"
+        apk_widgets: ["wemo_lighting", "wemo_bridge", "wemo_bridge_popup"]
+      characteristics:
+        - "Zigbee bridge for Wemo Link bulbs and groups."
+      services:
+        basicevent:
+          control_url: "/upnp/control/basicevent1"
+          actions: ["GetBinaryState", "GetMacAddr"]
+        bridge:
+          control_url: "/upnp/control/bridge1"
+          event_sub_url: "/upnp/event/bridge1"
+          service_type: "urn:Belkin:service:bridge:1"
+          actions: ["GetEndDevices", "GetEndDevicesWithStatus", "GetDeviceStatus", "SetDeviceStatus", "GetGroups", "CreateGroup", "DeleteGroup", "OpenNetwork", "CloseNetwork"]
+
+    - model: "BVMC-PSTX91WE"
+      name: "Mr. Coffee Smart Wemo Coffeemaker"
+      identification:
+        device_type: "urn:Belkin:device:coffeemaker:1"
+        udn_prefixes: ["uuid:CoffeeMaker"]
+        friendly_name_pattern: "Coffee"
+        apk_widgets: ["wemo_coffeemaker"]
+      characteristics:
+        - "Attribute-based appliance. Mode 4 starts brewing; remote off is not supported by pywemo."
+      services:
+        deviceevent:
+          control_url: "/upnp/control/deviceevent1"
+          event_sub_url: "/upnp/event/deviceevent1"
+          actions: ["GetAttributes", "SetAttributes", "GetAttributeList"]
+
+    - model: "SCCPWM600-V1"
+      name: "Crock-Pot Smart Slow Cooker"
+      identification:
+        device_type: "urn:Belkin:device:crockpot:1"
+        udn_prefixes: ["uuid:Crockpot"]
+        friendly_name_pattern: "Crock"
+        apk_widgets: ["wemo_crockpot"]
+      characteristics:
+        - "Cooking modes are off=0, warm=50, low=51, high=52."
+      services:
+        basicevent:
+          control_url: "/upnp/control/basicevent1"
+          event_sub_url: "/upnp/event/basicevent1"
+          actions: ["GetCrockpotState", "SetCrockpotState", "GetBinaryState"]
+        crockpotevent:
+          control_url: "/upnp/control/crockpotevent1"
+          event_sub_url: "/upnp/event/crockpotevent1"
+          actions: ["GetCrockpotState", "SetCrockpotState", "GetJardenStatus", "SetJardenStatus"]
+
+    - model: "Holmes-Air-Purifier"
+      name: "Holmes Smart Air Purifier"
+      identification:
+        device_type: "urn:Belkin:device:purifier:1"
+        alternate_device_types: ["urn:Belkin:device:airpurifier:1"]
+        udn_prefixes: ["uuid:AirPurifier"]
+        friendly_name_pattern: "Air Purifier"
+        apk_widgets: ["wemo_airpurifier"]
+      characteristics:
+        - "APK mock uses purifier:1. Some public catalogs call the class airpurifier:1."
+        - "Uses deviceevent attributes for appliance state."
+      services:
+        deviceevent:
+          control_url: "/upnp/control/deviceevent1"
+          event_sub_url: "/upnp/event/deviceevent1"
+          actions: ["GetAttributes", "SetAttributes", "GetAttributeList"]
+        basicevent:
+          control_url: "/upnp/control/basicevent1"
+          actions: ["GetBinaryState", "SetBinaryState", "GetJardenStatus", "SetJardenStatus"]
+
+    - model: "Holmes-Heater"
+      name: "Holmes Smart Heater"
+      identification:
+        device_type: "urn:Belkin:device:heater:1"
+        udn_prefixes: ["uuid:Heater"]
+        friendly_name_pattern: "Heater"
+        apk_widgets: ["wemo_heatera"]
+      characteristics:
+        - "Uses Jarden/deviceevent appliance attributes."
+      services:
+        deviceevent:
+          control_url: "/upnp/control/deviceevent1"
+          event_sub_url: "/upnp/event/deviceevent1"
+          actions: ["GetAttributes", "SetAttributes", "GetAttributeList"]
+        basicevent:
+          control_url: "/upnp/control/basicevent1"
+          actions: ["GetBinaryState", "SetBinaryState", "GetJardenStatus", "SetJardenStatus"]
+
+    - model: "Holmes-Humidifier"
+      name: "Holmes Smart Humidifier"
+      identification:
+        device_type: "urn:Belkin:device:humidifier:1"
+        alternate_device_types: ["urn:Belkin:device:humidity:1", "urn:Belkin:device:Humidifier:1"]
+        udn_prefixes: ["uuid:Humidifier"]
+        friendly_name_pattern: "Humidifier"
+        apk_widgets: ["wemo_humidifier", "wemo_humidifierb"]
+      characteristics:
+        - "pywemo supports humidifier attributes for fan mode, desired humidity, current humidity, water level, and filter life."
+        - "APK includes both humidifier:1 and humidifierb:1 widgets plus generic Humidifier:1 mocks."
+      services:
+        deviceevent:
+          control_url: "/upnp/control/deviceevent1"
+          event_sub_url: "/upnp/event/deviceevent1"
+          actions: ["GetAttributes", "SetAttributes", "GetAttributeList"]
+        basicevent:
+          control_url: "/upnp/control/basicevent1"
+          actions: ["GetBinaryState", "SetBinaryState", "GetJardenStatus", "SetJardenStatus"]
+
+    - model: "Holmes-Humidifier-B"
+      name: "Holmes Smart Humidifier Variant B"
+      identification:
+        device_type: "urn:Belkin:device:humidifierb:1"
+        alternate_device_types: ["urn:Belkin:device:humidity:1"]
+        udn_prefixes: ["uuid:Humidifier"]
+        friendly_name_pattern: "Humidifier"
+        apk_widgets: ["wemo_humidifierb"]
+      characteristics:
+        - "APK-specific humidifier variant; expect same deviceevent attribute pattern as humidifier:1."
+      services:
+        deviceevent:
+          control_url: "/upnp/control/deviceevent1"
+          event_sub_url: "/upnp/event/deviceevent1"
+          actions: ["GetAttributes", "SetAttributes", "GetAttributeList"]
+
+discovery_catalog:
+  sources:
+    pywemo:
+      url: "https://github.com/pywemo/pywemo"
+      device_classes:
+        - "Switch"
+        - "Insight"
+        - "LightSwitch"
+        - "Dimmer"
+        - "DimmerV2"
+        - "Maker"
+        - "OutdoorPlug"
+        - "Motion"
+        - "Bridge"
+        - "CoffeeMaker"
+        - "CrockPot"
+        - "Humidifier"
+    home_assistant:
+      url: "https://www.home-assistant.io/integrations/wemo/"
+      supported_platforms:
+        - "Binary sensor: Wemo Motion Sensor"
+        - "Fan: Wemo/Holmes Smart Humidifier"
+        - "Light: Wemo LED lights and Smart Dimmer Switch"
+        - "Switch: Wemo switches and Mr. Coffee smart coffee makers"
+      discovery_default: true
+    ouimeaux:
+      url: "https://github.com/iancmcc/ouimeaux"
+      role: "Legacy Python Wemo implementation and pywemo lineage."
+    apk:
+      path: "wemo-apk/decoded/assets/www/widgets/"
+      first_level_widget_dirs_observed: 45
+      relevant_device_widgets:
+        - "wemo_mini"
+        - "wemo_socket"
+        - "wemo_smart_plug"
+        - "wemo_insight"
+        - "wemo_outdoorplug"
+        - "wemo_lightswitch"
+        - "wemo_lightswitch_2gen"
+        - "wemo_lightswitch3way"
+        - "wemo_dimmer"
+        - "wemo_dimmer_v2"
+        - "wemo_lighting"
+        - "wemo_maker"
+        - "wemo_sensor"
+        - "wemo_coffeemaker"
+        - "wemo_crockpot"
+        - "wemo_heatera"
+        - "wemo_airpurifier"
+        - "wemo_humidifier"
+        - "wemo_humidifierb"
+
+soap_common:
+  transport: "HTTP POST"
+  content_type: "text/xml; charset=\"utf-8\""
+  soapaction_format: "\"<serviceType>#<Action>\""
+  setup_description:
+    method: "GET"
+    path: "/setup.xml"
+    content_type: "text/xml"
+    source: "SSDP LOCATION response header"
+  universal_services:
+    basicevent:
+      service_type: "urn:Belkin:service:basicevent:1"
+      control_url: "/upnp/control/basicevent1"
+      event_sub_url: "/upnp/event/basicevent1"
+      actions: ["GetBinaryState", "SetBinaryState"]
+    metainfo:
+      service_type: "urn:Belkin:service:metainfo:1"
+      control_url: "/upnp/control/metainfo1"
+      actions: ["GetMetaInfo", "GetExtMetaInfo"]
+    timesync:
+      service_type: "urn:Belkin:service:timesync:1"
+      control_url: "/upnp/control/timesync1"
+      actions: ["GetTime", "TimeSync", "GetDeviceTime"]
+    wifi_setup:
+      service_type: "urn:Belkin:service:WiFiSetup:1"
+      control_url: "/upnp/control/wifi1"
+      actions: ["GetApList", "ConnectHomeNetwork", "GetNetworkStatus", "CloseSetup"]
+
+http_endpoints:
+  - method: "GET"
+    path: "/setup.xml"
+    name: "UPnP Device Description"
+    description: >
+      PRIMARY Wemo identification endpoint. Fetch the LOCATION URL returned by
+      SSDP discovery. Parse deviceType for variant matching, UDN/serial/MAC for
+      stable identity and ordering, friendlyName for display naming, and
+      serviceList for per-device controlURL and eventSubURL values.
+    response_body:
+      content_type: "text/xml"
+      fields:
+        - name: "deviceType"
+          type: "string"
+          description: "UPnP device type URN used for variant matching."
+        - name: "friendlyName"
+          type: "string"
+          description: "User-facing name. Do not use as the stable device key."
+        - name: "UDN"
+          type: "string"
+          description: "Primary stable identity, for example uuid:Socket-1_0-<serial>."
+        - name: "serialNumber"
+          type: "string"
+          description: "Secondary stable identity."
+        - name: "macAddress"
+          type: "string"
+          description: "Tertiary stable identity."
+        - name: "serviceList"
+          type: "array"
+          description: "UPnP services with serviceType, controlURL, eventSubURL, and SCPDURL."
+
+  - method: "POST"
+    path: "/upnp/control/basicevent1"
+    name: "SetBinaryState"
+    description: >
+      Universal SOAP action for relay/light on/off. Required SOAPACTION header:
+      "urn:Belkin:service:basicevent:1#SetBinaryState". Dimmers may include a
+      brightness argument from 1-100 in the same action.
+    request_body:
+      content_type: "text/xml"
+      fields:
+        - name: "BinaryState"
+          type: "integer"
+          description: "Target state: 1 = on, 0 = off."
+          required: true
+          enum: [0, 1]
+        - name: "brightness"
+          type: "integer"
+          description: "Optional dimmer brightness, 1-100."
+
+  - method: "POST"
+    path: "/upnp/control/basicevent1"
+    name: "GetBinaryState"
+    description: >
+      Universal SOAP action for current binary state. Required SOAPACTION
+      header: "urn:Belkin:service:basicevent:1#GetBinaryState".
+    response_body:
+      content_type: "text/xml"
+      fields:
+        - name: "BinaryState"
+          type: "integer"
+          description: "Current state: 1 = on, 0 = off. Some devices include pipe-delimited extra parameters."
+
+  - method: "POST"
+    path: "/upnp/control/insight1"
+    name: "GetInsightParams"
+    description: >
+      Insight-only SOAP action. Required SOAPACTION header:
+      "urn:Belkin:service:insight:1#GetInsightParams".
+    response_body:
+      content_type: "text/xml"
+      fields:
+        - name: "InsightParams"
+          type: "string"
+          description: "Pipe-delimited state, timing, energy, power, and threshold values."
+
+  - method: "POST"
+    path: "/upnp/control/deviceevent1"
+    name: "GetAttributes / SetAttributes"
+    description: >
+      Attribute-based appliance surface used by Maker, Coffee Maker, Heater,
+      Air Purifier, and Humidifier classes. Required SOAPACTION header uses
+      urn:Belkin:service:deviceevent:1 with GetAttributes or SetAttributes.
+
+  - method: "POST"
+    path: "/upnp/control/bridge1"
+    name: "Bridge Device Control"
+    description: >
+      Wemo Link bridge actions for paired bulbs and groups, including
+      GetEndDevicesWithStatus, GetDeviceStatus, and SetDeviceStatus.

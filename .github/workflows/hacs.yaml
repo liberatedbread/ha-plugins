@@ -1,0 +1,37 @@
+name: Validate with HACS
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: HACS
+    runs-on: ubuntu-latest
+    env:
+      REPOSITORY_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: HACS validation
+        uses: hacs/action@main
+        with:
+          category: integration
+          comment: "false"
+          # Tracked in #4. Ignore only publication checks that cannot pass yet:
+          # - hacsjson and integration_manifest: HACS fetches these via unauthenticated
+          #   raw.githubusercontent.com URLs, which return 404 while the repository is
+          #   private; maintainer resolves by making the repository public.
+          # - brands: maintainer must add custom_components/liberated_bread/brand/icon.png
+          #   or land a liberated_bread entry in home-assistant/brands; ignored on PRs
+          #   and main until that external branding step is complete.
+          # - license: HACS reads GitHub's repository license object from the current
+          #   default branch, where PR #1 is not merged yet; ignored only on PRs and
+          #   expected to pass on main immediately after this import merges.
+          ignore: ${{ github.event_name == 'pull_request' && 'hacsjson integration_manifest brands license' || 'hacsjson integration_manifest brands' }}

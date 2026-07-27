@@ -1,0 +1,15 @@
+{
+  "domain": "liberated_bread",
+  "name": "Liberated Bread",
+  "codeowners": ["@holdenk"],
+  "config_flow": true,
+  "dependencies": ["bluetooth", "zeroconf"],
+  "documentation": "https://github.com/liberatedbread/ha-plugins/tree/main/custom_components/liberated_bread",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/liberatedbread/ha-plugins/issues",
+  "requirements": [
+    "pycryptodome>=3.20.0",
+    "defusedxml>=0.7.0"
+  ],
+  "version": "0.1.0"
+}

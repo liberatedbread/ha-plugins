@@ -1,0 +1,237 @@
+# Ember Mug family device spec
+# Copyright 2026 Pigs Can Fly Labs LLC
+# SPDX-License-Identifier: Apache-2.0
+
+device:
+  name: "Ember Mug"
+  manufacturer: "Ember Technologies"
+  manufacturer_status: "unsupported"
+  protocol: "ble"
+  notes: >
+    Covers Ember Mug 2 (10/14 oz), Travel Mug 2/2+, Cup (6 oz), Tumbler (16 oz).
+    Travel Mug uses service UUID fc543621 instead of fc543622.
+    All characteristics share UUID pattern fc54XXXX-236c-4c94-8fa9-944a3e5353fa.
+    BLE SIG company ID: 0x03C1 (961).
+  identification:
+    local_name_prefix: "Ember"
+    service_uuids:
+      - "fc543622-236c-4c94-8fa9-944a3e5353fa"
+      - "fc543621-236c-4c94-8fa9-944a3e5353fa"
+
+services:
+  - uuid: "fc543622-236c-4c94-8fa9-944a3e5353fa"
+    name: "Ember Mug Service"
+    characteristics:
+      - uuid: "fc540001-236c-4c94-8fa9-944a3e5353fa"
+        name: "Mug Name"
+        properties: ["read", "write"]
+        format:
+          - offset: 0
+            length: 14
+            name: "name"
+            type: "string"
+
+      - uuid: "fc540002-236c-4c94-8fa9-944a3e5353fa"
+        name: "Current Temperature"
+        properties: ["read"]
+        format:
+          - offset: 0
+            length: 2
+            name: "current_temp_raw"
+            type: "uint16"
+
+      - uuid: "fc540003-236c-4c94-8fa9-944a3e5353fa"
+        name: "Target Temperature"
+        properties: ["read", "write"]
+        commands:
+          set_target_temp:
+            description: "Set target temperature (value * 0.01 = degrees C; 0x0000 disables heater)"
+            template: ["{temp_low}", "{temp_high}"]
+            parameters:
+              temp_low:
+                type: "uint8"
+                min: 0
+                max: 255
+              temp_high:
+                type: "uint8"
+                min: 0
+                max: 255
+        format:
+          - offset: 0
+            length: 2
+            name: "target_temp_raw"
+            type: "uint16"
+
+      - uuid: "fc540004-236c-4c94-8fa9-944a3e5353fa"
+        name: "Temperature Unit"
+        properties: ["read", "write"]
+        commands:
+          set_celsius:
+            description: "Set temperature display to Celsius"
+            value: [0x00]
+          set_fahrenheit:
+            description: "Set temperature display to Fahrenheit"
+            value: [0x01]
+        format:
+          - offset: 0
+            length: 1
+            name: "temp_unit"
+            type: "uint8"
+
+      - uuid: "fc540005-236c-4c94-8fa9-944a3e5353fa"
+        name: "Liquid Level"
+        properties: ["read"]
+        format:
+          - offset: 0
+            length: 1
+            name: "liquid_level"
+            type: "uint8"
+
+      - uuid: "fc540006-236c-4c94-8fa9-944a3e5353fa"
+        name: "Date Time Zone"
+        properties: ["write"]
+        commands:
+          set_time:
+            description: "Set device clock (4-byte Unix timestamp LE + 1-byte timezone offset)"
+            template: ["{ts0}", "{ts1}", "{ts2}", "{ts3}", "{tz_offset}"]
+            parameters:
+              ts0:
+                type: "uint8"
+                min: 0
+                max: 255
+              ts1:
+                type: "uint8"
+                min: 0
+                max: 255
+              ts2:
+                type: "uint8"
+                min: 0
+                max: 255
+              ts3:
+                type: "uint8"
+                min: 0
+                max: 255
+              tz_offset:
+                type: "uint8"
+                min: 0
+                max: 255
+
+      - uuid: "fc540007-236c-4c94-8fa9-944a3e5353fa"
+        name: "Battery"
+        properties: ["read"]
+        format:
+          - offset: 0
+            length: 1
+            name: "battery_percent"
+            type: "uint8"
+          - offset: 1
+            length: 1
+            name: "on_charging_base"
+            type: "uint8"
+
+      - uuid: "fc540008-236c-4c94-8fa9-944a3e5353fa"
+        name: "Liquid State"
+        properties: ["read"]
+        format:
+          - offset: 0
+            length: 1
+            name: "liquid_state"
+            type: "uint8"
+
+      - uuid: "fc54000c-236c-4c94-8fa9-944a3e5353fa"
+        name: "Firmware"
+        properties: ["read"]
+        format:
+          - offset: 0
+            length: 2
+            name: "firmware_version"
+            type: "uint16"
+          - offset: 2
+            length: 2
+            name: "hardware_version"
+            type: "uint16"
+          - offset: 4
+            length: 2
+            name: "bootloader_version"
+            type: "uint16"
+
+      - uuid: "fc540012-236c-4c94-8fa9-944a3e5353fa"
+        name: "Push Event"
+        properties: ["read", "notify"]
+        format:
+          - offset: 0
+            length: 1
+            name: "event_id"
+            type: "uint8"
+
+      - uuid: "fc540014-236c-4c94-8fa9-944a3e5353fa"
+        name: "LED Color"
+        properties: ["read", "write"]
+        commands:
+          set_led_color:
+            description: "Set LED color (RGBA)"
+            template: ["{red}", "{green}", "{blue}", "{brightness}"]
+            parameters:
+              red:
+                type: "uint8"
+                min: 0
+                max: 255
+              green:
+                type: "uint8"
+                min: 0
+                max: 255
+              blue:
+                type: "uint8"
+                min: 0
+                max: 255
+              brightness:
+                type: "uint8"
+                min: 0
+                max: 255
+        format:
+          - offset: 0
+            length: 1
+            name: "red"
+            type: "uint8"
+          - offset: 1
+            length: 1
+            name: "green"
+            type: "uint8"
+          - offset: 2
+            length: 1
+            name: "blue"
+            type: "uint8"
+          - offset: 3
+            length: 1
+            name: "brightness"
+            type: "uint8"
+
+entities:
+  - platform: "sensor"
+    name: "Temperature"
+    device_class: "temperature"
+    unit: "C"
+    state_characteristic: "fc540002-236c-4c94-8fa9-944a3e5353fa"
+    state_mapping:
+      value: "current_temp_raw"
+
+  - platform: "sensor"
+    name: "Battery"
+    device_class: "battery"
+    unit: "%"
+    state_characteristic: "fc540007-236c-4c94-8fa9-944a3e5353fa"
+    state_mapping:
+      value: "battery_percent"
+
+  - platform: "light"
+    name: "LED"
+    features: ["color"]
+    state_characteristic: "fc540014-236c-4c94-8fa9-944a3e5353fa"
+    state_mapping:
+      color_rgb:
+        red: "red"
+        green: "green"
+        blue: "blue"
+      brightness: "brightness"
+    commands:
+      set_color: "set_led_color"

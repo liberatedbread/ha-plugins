@@ -1,0 +1,64 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Liberated Bread",
+        "description": "Choose the supported device type to configure.",
+        "data": {
+          "spec_name": "Device type"
+        }
+      },
+      "scan": {
+        "title": "Select Bluetooth devices",
+        "description": "Choose nearby {device_type} devices to manage.",
+        "data": {
+          "device_addresses": "Devices"
+        }
+      },
+      "wifi_discovery": {
+        "title": "Select Wi-Fi device",
+        "description": "Choose a discovered {device_type} device, or enter host details manually.",
+        "data": {
+          "wifi_device": "Discovered device",
+          "host": "Host",
+          "port": "Port"
+        }
+      },
+      "cloud_auth": {
+        "title": "Cloud authentication",
+        "description": "{device_type} requires cloud authentication before discovery. Cloud authentication is not implemented yet."
+      },
+      "encryption": {
+        "title": "Encryption key",
+        "description": "{device_type} uses AES-128-ECB for commands. Enter a 16-byte key as 32 hex characters, 16 text characters, or a secrets.yaml reference like secrets://shining_mask_key.",
+        "data": {
+          "aes_ecb_key": "AES-128-ECB key"
+        }
+      }
+    },
+    "error": {
+      "no_devices_found": "No matching devices were found.",
+      "missing_key": "An encryption key is required for this device type.",
+      "cloud_auth_required": "Cloud authentication is required for this device type."
+    },
+    "abort": {
+      "no_specs": "No bundled device specs could be loaded.",
+      "unknown_spec": "The configured device spec is no longer available.",
+      "cloud_auth_not_implemented": "Cloud authentication is not implemented yet."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Managed devices",
+        "description": "Choose the Bluetooth devices managed by this entry.",
+        "data": {
+          "device_addresses": "Devices"
+        }
+      }
+    },
+    "abort": {
+      "unknown_spec": "The configured device spec is no longer available."
+    }
+  }
+}

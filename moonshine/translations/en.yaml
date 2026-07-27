@@ -1,0 +1,16 @@
+---
+configuration:
+  language:
+    name: Language
+    description: >-
+      Language to pre-load model for during start-up.
+  model:
+    name: Model
+    description: |
+      Which model to use, you can specify tiny, small or medium.
+  debug_logging:
+    name: Debug logging
+    description: >-
+      Print DEBUG level messages to the app's log.
+network:
+  10300/tcp: Whisper Wyoming Protocol
