@@ -22,6 +22,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         CONF_SPEC_NAME,
         CONF_WIFI_DEVICES,
         CONF_WIFI_IDENTITY,
+        CONF_WIFI_VARIANT,
         DATA_MANAGER,
         DATA_SPECS,
         DOMAIN,
@@ -81,6 +82,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     port = int(matched.port)
                     control_urls = matched.control_urls
                     wifi_identity = normalize_identity(matched.identity)
+                    wifi_variant = (matched.raw_info.get("variant") or "").strip() or None
                     resolved = True
                     _LOGGER.info(
                         "Re-resolved %s to %s:%s", spec_name, host, port
@@ -96,6 +98,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         new_data[CONF_CONTROL_URLS] = control_urls
                     if wifi_identity:
                         new_data[CONF_WIFI_IDENTITY] = wifi_identity
+                    if wifi_variant:
+                        new_data[CONF_WIFI_VARIANT] = wifi_variant
                     new_wifi_devices = [
                         {
                             **device_data,
@@ -104,6 +108,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                             "device_id": device_id,
                             "control_urls": control_urls,
                             "identity": wifi_identity,
+                            "variant": wifi_variant or device_data.get("variant"),
                             "needs_resolution": False,
                         }
                     ]
@@ -135,6 +140,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 device_data.get("identity")
                 or entry.data.get(CONF_WIFI_IDENTITY, {})
             )
+            wifi_variant = entry.data.get(CONF_WIFI_VARIANT) or device_data.get("variant")
 
         manager = LiberatedBreadWifiManager(
             hass,
@@ -144,6 +150,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             port,
             control_urls,
             identity=wifi_identity,
+            variant_key=wifi_variant if resolved else (entry.data.get(CONF_WIFI_VARIANT) or device_data.get("variant")),
             entry=entry,
         )
     else:

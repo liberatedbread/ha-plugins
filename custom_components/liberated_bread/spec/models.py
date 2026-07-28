@@ -454,9 +454,15 @@ class DeviceInfo:
     protobuf: Any = None
     state_machine: Any = None
     version_fields: Any = None
+    extensions: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Self:
+        known = {
+            "name", "manufacturer", "manufacturer_status", "protocol",
+            "notes", "identification", "discovery", "variants",
+            "protobuf", "state_machine", "version_fields",
+        }
         return cls(
             name=str(data["name"]),
             manufacturer=str(data["manufacturer"]),
@@ -469,7 +475,13 @@ class DeviceInfo:
             protobuf=data.get("protobuf"),
             state_machine=data.get("state_machine"),
             version_fields=data.get("version_fields"),
+            extensions={key: value for key, value in data.items() if key not in known},
         )
+
+    @property
+    def transport(self) -> str:
+        """Return the device transport protocol (e.g. ``"upnp"`` for Wemo)."""
+        return str(self.extensions.get("transport", ""))
 
 
 @dataclass

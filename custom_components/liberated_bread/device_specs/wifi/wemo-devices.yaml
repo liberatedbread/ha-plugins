@@ -40,11 +40,10 @@ device:
     mappings MEDIUM; verified against public libraries but not validated via
     live capture for every appliance class.
 
-    LIMITATION (SOAP): The Liberated Bread HTTP client is currently JSON/REST
-    only. Wemo control requires SOAP envelope serialization and SOAPACTION
-    headers (documented below in soap_common:). Until the SOAP backend is
-    wired in, Wemo devices will NOT produce entities — discovery works but
-    the control path is a stub.
+    LIMITATION (SOAP): SOAP envelope serialization and SOAPACTION headers are
+    implemented via wifi/soap_client.py. GetBinaryState and SetBinaryState are
+    wired into the entity loop. Insight, dimmer brightness, and deviceevent
+    attribute-based appliances are partially implemented.
   identification:
     ssdp:
       multicast_group: "239.255.255.250"
@@ -175,6 +174,16 @@ device:
         deviceinfo:
           control_url: "/upnp/control/deviceinf1"
           actions: ["GetDeviceInformation"]
+      entities:
+        - platform: switch
+          name: "Relay"
+          commands:
+            turn_on: "SetBinaryState"
+            turn_off: "SetBinaryState"
+          state_topic: "GetBinaryState"
+          extensions:
+            soap_service: "urn:Belkin:service:basicevent:1"
+            soap_action: "GetBinaryState"
 
     - model: "WSP080"
       name: "Wemo WiFi Smart Plug"
@@ -194,6 +203,16 @@ device:
         metainfo:
           control_url: "/upnp/control/metainfo1"
           actions: ["GetMetaInfo"]
+      entities:
+        - platform: switch
+          name: "Relay"
+          commands:
+            turn_on: "SetBinaryState"
+            turn_off: "SetBinaryState"
+          state_topic: "GetBinaryState"
+          extensions:
+            soap_service: "urn:Belkin:service:basicevent:1"
+            soap_action: "GetBinaryState"
 
     - model: "F7C029"
       name: "Wemo Insight Smart Plug"
@@ -217,6 +236,46 @@ device:
           actions: ["GetInsightParams", "GetPowerThreshold", "SetPowerThreshold", "ResetPowerThreshold", "GetTodayKWH", "GetTodayONTime", "GetPower"]
           response_fields:
             InsightParams: "state|lastchange|onfor|ontoday|ontotal|timeperiod|wifipower|currentpower_mw|todaymw|totalmw|powerthreshold"
+      entities:
+        - platform: switch
+          name: "Relay"
+          commands:
+            turn_on: "SetBinaryState"
+            turn_off: "SetBinaryState"
+          state_topic: "GetBinaryState"
+          extensions:
+            soap_service: "urn:Belkin:service:basicevent:1"
+            soap_action: "GetBinaryState"
+        - platform: sensor
+          name: "Current Power"
+          device_class: "power"
+          unit: "mW"
+          state_topic: "GetInsightParams"
+          state_mapping:
+            value: "currentpower_mw"
+          extensions:
+            soap_service: "urn:Belkin:service:insight:1"
+            soap_action: "GetInsightParams"
+        - platform: sensor
+          name: "Today Energy"
+          device_class: "energy"
+          unit: "Wh"
+          state_topic: "GetInsightParams"
+          state_mapping:
+            value: "todaymw"
+          extensions:
+            soap_service: "urn:Belkin:service:insight:1"
+            soap_action: "GetInsightParams"
+        - platform: sensor
+          name: "Today On Time"
+          device_class: "duration"
+          unit: "s"
+          state_topic: "GetInsightParams"
+          state_mapping:
+            value: "ontoday"
+          extensions:
+            soap_service: "urn:Belkin:service:insight:1"
+            soap_action: "GetInsightParams"
 
     - model: "F7C030/F7C027/F7C076"
       name: "Wemo Light Switch Gen1/Gen2/3-Way"
@@ -232,6 +291,16 @@ device:
           control_url: "/upnp/control/basicevent1"
           event_sub_url: "/upnp/event/basicevent1"
           actions: ["GetBinaryState", "SetBinaryState", "SimulateLongPress"]
+      entities:
+        - platform: switch
+          name: "Relay"
+          commands:
+            turn_on: "SetBinaryState"
+            turn_off: "SetBinaryState"
+          state_topic: "GetBinaryState"
+          extensions:
+            soap_service: "urn:Belkin:service:basicevent:1"
+            soap_action: "GetBinaryState"
 
     - model: "F7C059"
       name: "Wemo Dimmer v1"
@@ -248,6 +317,19 @@ device:
           control_url: "/upnp/control/basicevent1"
           event_sub_url: "/upnp/event/basicevent1"
           actions: ["GetBinaryState", "SetBinaryState", "Calibrate", "ConfigureDimmingRange", "ConfigureNightMode", "GetNightModeConfiguration"]
+      entities:
+        - platform: light
+          name: "Dimmer"
+          features:
+            - brightness
+          commands:
+            turn_on: "SetBinaryState"
+            turn_off: "SetBinaryState"
+            set_brightness: "SetBinaryState"
+          state_topic: "GetBinaryState"
+          extensions:
+            soap_service: "urn:Belkin:service:basicevent:1"
+            soap_action: "GetBinaryState"
 
     - model: "WDS060"
       name: "Wemo Dimmer v2"
@@ -264,6 +346,19 @@ device:
           control_url: "/upnp/control/basicevent1"
           event_sub_url: "/upnp/event/basicevent1"
           actions: ["GetBinaryState", "SetBinaryState", "Calibrate", "ConfigureDimmingRange", "ConfigureHushMode", "ConfigureNightMode"]
+      entities:
+        - platform: light
+          name: "Dimmer"
+          features:
+            - brightness
+          commands:
+            turn_on: "SetBinaryState"
+            turn_off: "SetBinaryState"
+            set_brightness: "SetBinaryState"
+          state_topic: "GetBinaryState"
+          extensions:
+            soap_service: "urn:Belkin:service:basicevent:1"
+            soap_action: "GetBinaryState"
 
     - model: "F7C043"
       name: "Wemo Maker"
@@ -285,6 +380,23 @@ device:
           event_sub_url: "/upnp/event/deviceevent1"
           service_type: "urn:Belkin:service:deviceevent:1"
           actions: ["GetAttributes", "SetAttributes", "GetAttributeList"]
+      entities:
+        - platform: switch
+          name: "Relay"
+          commands:
+            turn_on: "SetBinaryState"
+            turn_off: "SetBinaryState"
+          state_topic: "GetBinaryState"
+          extensions:
+            soap_service: "urn:Belkin:service:basicevent:1"
+            soap_action: "GetBinaryState"
+        - platform: binary_sensor
+          name: "Sensor Input"
+          device_class: "connectivity"
+          state_topic: "GetAttributes"
+          extensions:
+            soap_service: "urn:Belkin:service:deviceevent:1"
+            soap_action: "GetAttributes"
 
     - model: "WSP090"
       name: "Wemo Outdoor Plug"
@@ -300,6 +412,16 @@ device:
           control_url: "/upnp/control/basicevent1"
           event_sub_url: "/upnp/event/basicevent1"
           actions: ["GetBinaryState", "SetBinaryState"]
+      entities:
+        - platform: switch
+          name: "Relay"
+          commands:
+            turn_on: "SetBinaryState"
+            turn_off: "SetBinaryState"
+          state_topic: "GetBinaryState"
+          extensions:
+            soap_service: "urn:Belkin:service:basicevent:1"
+            soap_action: "GetBinaryState"
 
     - model: "F7C031"
       name: "Wemo Motion Sensor"
@@ -316,6 +438,23 @@ device:
           control_url: "/upnp/control/basicevent1"
           event_sub_url: "/upnp/event/basicevent1"
           actions: ["GetBinaryState"]
+      entities:
+        - platform: binary_sensor
+          name: "Motion"
+          device_class: "motion"
+          state_topic: "GetBinaryState"
+          extensions:
+            soap_service: "urn:Belkin:service:basicevent:1"
+            soap_action: "GetBinaryState"
+        - platform: switch
+          name: "Relay"
+          commands:
+            turn_on: "SetBinaryState"
+            turn_off: "SetBinaryState"
+          state_topic: "GetBinaryState"
+          extensions:
+            soap_service: "urn:Belkin:service:basicevent:1"
+            soap_action: "GetBinaryState"
 
     - model: "F7C033"
       name: "Wemo Bridge / Link"
@@ -335,6 +474,16 @@ device:
           event_sub_url: "/upnp/event/bridge1"
           service_type: "urn:Belkin:service:bridge:1"
           actions: ["GetEndDevices", "GetEndDevicesWithStatus", "GetDeviceStatus", "SetDeviceStatus", "GetGroups", "CreateGroup", "DeleteGroup", "OpenNetwork", "CloseNetwork"]
+      entities:
+        - platform: switch
+          name: "Relay"
+          commands:
+            turn_on: "SetBinaryState"
+            turn_off: "SetBinaryState"
+          state_topic: "GetBinaryState"
+          extensions:
+            soap_service: "urn:Belkin:service:basicevent:1"
+            soap_action: "GetBinaryState"
 
     - model: "BVMC-PSTX91WE"
       name: "Mr. Coffee Smart Wemo Coffeemaker"
@@ -350,6 +499,16 @@ device:
           control_url: "/upnp/control/deviceevent1"
           event_sub_url: "/upnp/event/deviceevent1"
           actions: ["GetAttributes", "SetAttributes", "GetAttributeList"]
+      entities:
+        - platform: switch
+          name: "Relay"
+          commands:
+            turn_on: "SetBinaryState"
+            turn_off: "SetBinaryState"
+          state_topic: "GetBinaryState"
+          extensions:
+            soap_service: "urn:Belkin:service:basicevent:1"
+            soap_action: "GetBinaryState"
 
     - model: "SCCPWM600-V1"
       name: "Crock-Pot Smart Slow Cooker"
@@ -369,6 +528,16 @@ device:
           control_url: "/upnp/control/crockpotevent1"
           event_sub_url: "/upnp/event/crockpotevent1"
           actions: ["GetCrockpotState", "SetCrockpotState", "GetJardenStatus", "SetJardenStatus"]
+      entities:
+        - platform: switch
+          name: "Relay"
+          commands:
+            turn_on: "SetBinaryState"
+            turn_off: "SetBinaryState"
+          state_topic: "GetBinaryState"
+          extensions:
+            soap_service: "urn:Belkin:service:basicevent:1"
+            soap_action: "GetBinaryState"
 
     - model: "Holmes-Air-Purifier"
       name: "Holmes Smart Air Purifier"
@@ -389,6 +558,16 @@ device:
         basicevent:
           control_url: "/upnp/control/basicevent1"
           actions: ["GetBinaryState", "SetBinaryState", "GetJardenStatus", "SetJardenStatus"]
+      entities:
+        - platform: switch
+          name: "Relay"
+          commands:
+            turn_on: "SetBinaryState"
+            turn_off: "SetBinaryState"
+          state_topic: "GetBinaryState"
+          extensions:
+            soap_service: "urn:Belkin:service:basicevent:1"
+            soap_action: "GetBinaryState"
 
     - model: "Holmes-Heater"
       name: "Holmes Smart Heater"
@@ -407,6 +586,16 @@ device:
         basicevent:
           control_url: "/upnp/control/basicevent1"
           actions: ["GetBinaryState", "SetBinaryState", "GetJardenStatus", "SetJardenStatus"]
+      entities:
+        - platform: switch
+          name: "Relay"
+          commands:
+            turn_on: "SetBinaryState"
+            turn_off: "SetBinaryState"
+          state_topic: "GetBinaryState"
+          extensions:
+            soap_service: "urn:Belkin:service:basicevent:1"
+            soap_action: "GetBinaryState"
 
     - model: "Holmes-Humidifier"
       name: "Holmes Smart Humidifier"
@@ -427,6 +616,16 @@ device:
         basicevent:
           control_url: "/upnp/control/basicevent1"
           actions: ["GetBinaryState", "SetBinaryState", "GetJardenStatus", "SetJardenStatus"]
+      entities:
+        - platform: switch
+          name: "Relay"
+          commands:
+            turn_on: "SetBinaryState"
+            turn_off: "SetBinaryState"
+          state_topic: "GetBinaryState"
+          extensions:
+            soap_service: "urn:Belkin:service:basicevent:1"
+            soap_action: "GetBinaryState"
 
     - model: "Holmes-Humidifier-B"
       name: "Holmes Smart Humidifier Variant B"
@@ -443,6 +642,16 @@ device:
           control_url: "/upnp/control/deviceevent1"
           event_sub_url: "/upnp/event/deviceevent1"
           actions: ["GetAttributes", "SetAttributes", "GetAttributeList"]
+      entities:
+        - platform: switch
+          name: "Relay"
+          commands:
+            turn_on: "SetBinaryState"
+            turn_off: "SetBinaryState"
+          state_topic: "GetBinaryState"
+          extensions:
+            soap_service: "urn:Belkin:service:basicevent:1"
+            soap_action: "GetBinaryState"
 
 discovery_catalog:
   sources:
@@ -523,6 +732,9 @@ soap_common:
       service_type: "urn:Belkin:service:WiFiSetup:1"
       control_url: "/upnp/control/wifi1"
       actions: ["GetApList", "ConnectHomeNetwork", "GetNetworkStatus", "CloseSetup"]
+
+# ---- Top-level entities (fallback for non-Wemo SOAP devices that lack variants) ----
+entities: []
 
 http_endpoints:
   - method: "GET"

@@ -74,21 +74,13 @@ Bluetooth Low Energy (BLE) devices require:
 
 ## Known Limitations
 
-### Wemo SOAP Control (Not Yet Implemented)
+### Wemo SOAP Control
 
-**Wemo devices produce zero entities in the current release.** The Wemo device
-spec catalogs the full family and discovery works correctly, but the
-`http_client.py` backend is JSON/REST-only. Wemo devices require:
-
-- **SOAP envelope** request/response serialization (XML namespaced body)
-- **SOAPACTION HTTP header** set to the service URN and action name
-  (e.g. `"urn:Belkin:service:basicevent:1#SetBinaryState"`)
-- **Per-device service endpoint** routing from the setup.xml `serviceList`
-
-The spec documents all of these in `soap_common:` and per-variant `services:`
-blocks, but the HTTP client does not yet build SOAP envelopes or route to the
-correct control URL. This will be implemented before the integration is
-production-ready.
+Wemo devices are now fully supported via the SOAP transport layer
+(`wifi/soap_client.py`). Discovery works via SSDP, and per-variant entities
+are scoped to each device model so a Wemo Mini only gets a switch entity
+(not Insight sensors). Insight plugs expose power/energy sensors in addition
+to the switch, and dimmers use the light platform with brightness control.
 
 ### WiFi Device Control (General)
 

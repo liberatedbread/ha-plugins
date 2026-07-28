@@ -33,6 +33,7 @@ CONF_PORT = "port"
 CONF_CONTROL_URLS = "control_urls"
 CONF_WIFI_DEVICES = "wifi_devices"
 CONF_WIFI_IDENTITY = "wifi_identity"
+CONF_WIFI_VARIANT = "wifi_variant"
 
 DATA_MANAGER = "manager"
 DATA_SPECS = "specs"

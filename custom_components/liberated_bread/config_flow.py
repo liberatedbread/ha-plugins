@@ -26,6 +26,7 @@ from .const import (
     CONF_SPEC_NAME,
     CONF_WIFI_DEVICES,
     CONF_WIFI_IDENTITY,
+    CONF_WIFI_VARIANT,
     DEFAULT_SCAN_TIMEOUT,
     DOMAIN,
 )
@@ -272,12 +273,16 @@ class LiberatedBreadConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         identity = normalize_identity(device.identity)
         needs_resolution = not bool(device.host)
 
+        # Persist the matched variant key (deviceType) for entity filtering.
+        variant = (device.raw_info.get("variant") or "").strip() or None
+
         data: dict[str, Any] = {
             CONF_SPEC_NAME: self._spec_name,
             CONF_HOST: device.host,
             CONF_PORT: device.port,
             CONF_CONTROL_URLS: device.control_urls,
             CONF_WIFI_IDENTITY: identity,
+            CONF_WIFI_VARIANT: variant,
             CONF_WIFI_DEVICES: [
                 {
                     "device_id": device_id,
@@ -285,6 +290,7 @@ class LiberatedBreadConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     "port": device.port,
                     "control_urls": device.control_urls,
                     "identity": identity,
+                    "variant": variant,
                 }
             ],
         }

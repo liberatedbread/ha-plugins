@@ -24,6 +24,7 @@ from ..const import (
 from ..spec.models import DeviceSpec, EntityDef, HttpEndpoint
 from .http_client import LiberatedBreadHttpClient
 from .identity import identity_matches
+from .soap_client import SoapClient
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -45,6 +46,12 @@ class LiberatedBreadWifiDevice:
     port: int
     control_urls: dict[str, str] = field(default_factory=dict)
     state: dict[str, dict[str, Any]] = field(default_factory=dict)
+    variant_entities: list[EntityDef] = field(default_factory=list)
+
+    @property
+    def entities(self) -> list[EntityDef]:
+        """Return variant-filtered entities, or spec.entities as fallback."""
+        return self.variant_entities if self.variant_entities else self.spec.entities
 
 
 class LiberatedBreadWifiManager:
@@ -59,6 +66,7 @@ class LiberatedBreadWifiManager:
         port: int,
         control_urls: dict[str, str],
         identity: dict[str, str] | None = None,
+        variant_key: str | None = None,
         entry: ConfigEntry | None = None,
     ) -> None:
         self.hass = hass
@@ -67,9 +75,19 @@ class LiberatedBreadWifiManager:
         self.port = port
         self.control_urls = control_urls
         self._identity: dict[str, str] = dict(identity or {})
+        self._variant_key: str | None = variant_key
         self._entry: ConfigEntry | None = entry
+        self._uses_soap = _spec_uses_soap(spec, control_urls)
+        if self._uses_soap:
+            self.soap = SoapClient(host, port, hass, control_urls)
+        else:
+            self.soap = None
         self.client = LiberatedBreadHttpClient(host, port, hass)
         self.host = self.client.host
+        self._soap_cache: dict[tuple[str, str], tuple[float, Any]] = {}
+        self._soap_cache_ttl: float = 3.0
+        # Resolve variant entities from the matched variant, falling back to spec.entities.
+        variant_entities = _resolve_variant_entities(spec, variant_key)
         self.devices = {
             device_id: LiberatedBreadWifiDevice(
                 device_id,
@@ -78,6 +96,7 @@ class LiberatedBreadWifiManager:
                 host,
                 port,
                 control_urls,
+                variant_entities=variant_entities,
             )
         }
         self._ready = False
@@ -140,11 +159,14 @@ class LiberatedBreadWifiManager:
         if entity is None:
             return None
         try:
-            endpoint = self._endpoint_for_state(entity, device_id)
-            if endpoint is not None:
-                raw = await self.client.request(endpoint, **self._path_params(device_id))
+            if self._uses_soap and self.soap is not None:
+                raw = await self._request_soap_state(entity)
             else:
-                raw = await self._request_state_fallback(entity, device_id)
+                endpoint = self._endpoint_for_state(entity, device_id)
+                if endpoint is not None:
+                    raw = await self.client.request(endpoint, **self._path_params(device_id))
+                else:
+                    raw = await self._request_state_fallback(entity, device_id)
             mapped = self._map_state(entity, raw)
             self.devices[device_id].state[entity.name] = mapped
             self._mark_success()
@@ -157,14 +179,18 @@ class LiberatedBreadWifiManager:
                 )
                 if await self.rediscover():
                     try:
-                        if endpoint is not None:
-                            raw = await self.client.request(
-                                endpoint, **self._path_params(device_id)
-                            )
+                        if self._uses_soap and self.soap is not None:
+                            raw = await self._request_soap_state(entity)
                         else:
-                            raw = await self._request_state_fallback(
-                                entity, device_id
-                            )
+                            endpoint = self._endpoint_for_state(entity, device_id)
+                            if endpoint is not None:
+                                raw = await self.client.request(
+                                    endpoint, **self._path_params(device_id)
+                                )
+                            else:
+                                raw = await self._request_state_fallback(
+                                    entity, device_id
+                                )
                         mapped = self._map_state(entity, raw)
                         self.devices[device_id].state[entity.name] = mapped
                         self._mark_success()
@@ -180,14 +206,17 @@ class LiberatedBreadWifiManager:
     ) -> bool:
         """Execute a command for a spec entity."""
         command = entity.commands.get(command_name, command_name)
-        endpoint = self._endpoint_for_command(command)
         try:
-            if endpoint is None:
-                await self.client.send_command(entity, command, **params)
+            if self._uses_soap and self.soap is not None:
+                await self._execute_soap_command(entity, command, params)
             else:
-                await self.client.request(
-                    endpoint, **self._path_params(self.device_id), payload=params
-                )
+                endpoint = self._endpoint_for_command(command)
+                if endpoint is None:
+                    await self.client.send_command(entity, command, **params)
+                else:
+                    await self.client.request(
+                        endpoint, **self._path_params(self.device_id), payload=params
+                    )
             self._mark_success()
             return True
         except Exception as err:
@@ -199,16 +228,20 @@ class LiberatedBreadWifiManager:
                 )
                 if await self.rediscover():
                     try:
-                        if endpoint is None:
-                            await self.client.send_command(
-                                entity, command, **params
-                            )
+                        if self._uses_soap and self.soap is not None:
+                            await self._execute_soap_command(entity, command, params)
                         else:
-                            await self.client.request(
-                                endpoint,
-                                **self._path_params(self.device_id),
-                                payload=params,
-                            )
+                            endpoint = self._endpoint_for_command(command)
+                            if endpoint is None:
+                                await self.client.send_command(
+                                    entity, command, **params
+                                )
+                            else:
+                                await self.client.request(
+                                    endpoint,
+                                    **self._path_params(self.device_id),
+                                    payload=params,
+                                )
                         self._mark_success()
                         return True
                     except Exception as retry_err:
@@ -389,6 +422,7 @@ class LiberatedBreadWifiManager:
         self.port = new_port
         self.client = LiberatedBreadHttpClient(new_host, new_port, self.hass)
         self.control_urls = dict(matched.control_urls)
+        self._rebuild_soap_client(new_host, new_port)
         device = self.devices.get(self.device_id)
         if device is not None:
             device.host = new_host
@@ -438,6 +472,121 @@ class LiberatedBreadWifiManager:
             if identity_matches(self._identity, dev_identity):
                 return device
         return None
+
+    # -- SOAP routing -----------------------------------------------------------
+
+    async def _request_soap_state(self, entity: EntityDef) -> Any:
+        """Poll state for a SOAP-based entity.
+
+        Routes based on *entity.extensions.soap_action* or falls back to the
+        entity's *state_topic* as a SOAP action name.
+        """
+        soap_service = entity.extensions.get("soap_service", "")
+        soap_action = entity.extensions.get("soap_action") or entity.state_topic
+        if not soap_action:
+            return {}
+
+        if not soap_service and self.soap is not None:
+            # Default to basicevent if no explicit service declared.
+            soap_service = "urn:Belkin:service:basicevent:1"
+
+        # Check response cache to avoid duplicate SOAP calls for the same poll cycle.
+        cache_key = (soap_service, soap_action)
+        now = time.monotonic()
+        if cache_key in self._soap_cache:
+            cached_at, cached_val = self._soap_cache[cache_key]
+            if now - cached_at < self._soap_cache_ttl:
+                return cached_val
+
+        if soap_action == "GetInsightParams":
+            result = await self.soap.get_insight_params()
+        elif soap_action == "GetBinaryState":
+            result = await self.soap.get_binary_state()
+        else:
+            # Generic SOAP action call — return raw response text.
+            if self.soap is not None:
+                raw = await self.soap.call_action(soap_service, soap_action)
+                result = {"value": raw}
+            else:
+                result = {}
+
+        self._soap_cache[cache_key] = (now, result)
+        return result
+
+    async def _execute_soap_command(
+        self, entity: EntityDef, command: str, params: dict[str, Any]
+    ) -> None:
+        """Execute a SOAP command for the given entity.
+
+        Maps HA command names to Wemo SOAP actions.
+        *command* is already resolved from entity.commands (e.g. "SetBinaryState").
+        """
+        soap_service = entity.extensions.get("soap_service", "")
+        if not soap_service and self.soap is not None:
+            soap_service = "urn:Belkin:service:basicevent:1"
+
+        # Clear SOAP response cache so the next poll sees the just-issued command's effect.
+        self._soap_cache.clear()
+
+        if command == "SetBinaryState":
+            value = params.get("value", 1)
+            brightness = params.get("brightness")
+            await self.soap.set_binary_state(value, brightness=brightness)
+        elif command == "GetBinaryState":
+            # A read-only command (e.g., for "refresh").
+            await self.soap.get_binary_state()
+        else:
+            # Generic SOAP action dispatch.
+            await self.soap.call_action(soap_service, command, params)
+
+    def _rebuild_soap_client(self, host: str, port: int) -> None:
+        """Re-create the SOAP client after rediscovery changes host:port."""
+        if self._uses_soap:
+            self.soap = SoapClient(host, port, self.hass, self.control_urls)
+
+
+# -- Module helpers -------------------------------------------------------------
+
+def _resolve_variant_entities(
+    spec: DeviceSpec, variant_key: str | None
+) -> list[EntityDef]:
+    """Resolve per-variant entities from a matched deviceType.
+
+    Looks up the variant in spec.device.variants by its ``device_type`` and
+    returns the ``entities`` block as EntityDef objects.  Falls back to
+    ``spec.entities`` when no variant matches (e.g. non-Wemo devices).
+    """
+    if not variant_key:
+        return list(spec.entities)
+
+    variants: list[dict] = getattr(spec.device, "variants", None) or []
+    for variant in variants:
+        ident = variant.get("identification") or {}
+        dt = (ident.get("device_type") or "").strip()
+        if dt and dt.lower() == variant_key.lower():
+            raw_entities = variant.get("entities") or []
+            if raw_entities:
+                return [EntityDef.from_dict(item) for item in raw_entities]
+            break
+
+    return list(spec.entities)
+
+
+def _spec_uses_soap(spec: DeviceSpec, control_urls: dict[str, str]) -> bool:
+    """Return True when the device spec and discovered control URLs indicate SOAP.
+
+    Checks the device.transport extension (set to ``"upnp"`` for Wemo) and
+    whether the control_urls dict contains SOAP service URNs.
+    """
+    transport = getattr(spec.device, "transport", "")
+    if transport and transport != "":
+        if transport == "upnp":
+            return True
+    # Fallback: if control_urls keys look like URNs, assume SOAP.
+    for key in control_urls:
+        if key.startswith("urn:"):
+            return True
+    return False
 
 
 def _normalize_name(value: str) -> str:
