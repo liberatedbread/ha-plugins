@@ -24,3 +24,7 @@ jobs:
         with:
           category: integration
           comment: "false"
+          # Tracked in #4. Owner: repo maintainer must add
+          # custom_components/liberated_bread/brand/icon.png in this repo or
+          # merge a liberated_bread entry in home-assistant/brands.
+          ignore: brands
