@@ -20,11 +20,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: HACS validation
-        uses: hacs/action@22.5.0
+        # hacs/action's metadata runs docker://ghcr.io/hacs/action:main, so a
+        # uses: ref pin does not pin the actual validation runtime.
+        uses: hacs/action@main
         with:
           category: integration
           comment: "false"
-          # Tracked in #4. Owner: repo maintainer must add
-          # custom_components/liberated_bread/brand/icon.png in this repo or
-          # merge a liberated_bread entry in home-assistant/brands.
-          ignore: brands
