@@ -28,10 +28,23 @@ device:
     a power cycle or reconnect. Always rediscover with SSDP or probe ports
     49152-49159 in the pywemo order recorded below.
 
+    DYNAMIC IDENTITY: The integration stores UDN (primary), serialNumber, and
+    macAddress from setup.xml for re-resolution. When a request fails, the
+    manager fires a single SSDP re-discovery and matches against the stored
+    identity keys before marking the device unavailable. This covers Wemo
+    Mini and any other device that changes ports after power cycle. CONFIDENCE
+    in this pattern is HIGH — it mirrors how pywemo recovers in the wild.
+
     CONFIDENCE: SSDP discovery and SOAP action values HIGH (verified by pywemo,
     Home Assistant, ouimeaux lineage, and APK decompilation). Per-device command
     mappings MEDIUM; verified against public libraries but not validated via
     live capture for every appliance class.
+
+    LIMITATION (SOAP): The Liberated Bread HTTP client is currently JSON/REST
+    only. Wemo control requires SOAP envelope serialization and SOAPACTION
+    headers (documented below in soap_common:). Until the SOAP backend is
+    wired in, Wemo devices will NOT produce entities — discovery works but
+    the control path is a stub.
   identification:
     ssdp:
       multicast_group: "239.255.255.250"

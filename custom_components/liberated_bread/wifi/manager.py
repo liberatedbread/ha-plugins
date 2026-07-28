@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import logging
+import time
 from typing import TYPE_CHECKING, Any
 
 try:
@@ -12,14 +13,25 @@ try:
 except ModuleNotFoundError:  # pragma: no cover - standalone import outside HA.
     HADeviceInfo = dict
 
-from ..const import DOMAIN
+from ..const import (
+    CONF_CONTROL_URLS,
+    CONF_HOST,
+    CONF_PORT,
+    CONF_WIFI_DEVICES,
+    CONF_WIFI_IDENTITY,
+    DOMAIN,
+)
 from ..spec.models import DeviceSpec, EntityDef, HttpEndpoint
 from .http_client import LiberatedBreadHttpClient
+from .identity import identity_matches
 
 if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
+
+_REDISCOVERY_COOLDOWN = 300  # seconds before another SSDP re-resolution attempt.
 
 
 @dataclass
@@ -46,12 +58,16 @@ class LiberatedBreadWifiManager:
         host: str,
         port: int,
         control_urls: dict[str, str],
+        identity: dict[str, str] | None = None,
+        entry: ConfigEntry | None = None,
     ) -> None:
         self.hass = hass
         self.spec = spec
         self.device_id = device_id
         self.port = port
         self.control_urls = control_urls
+        self._identity: dict[str, str] = dict(identity or {})
+        self._entry: ConfigEntry | None = entry
         self.client = LiberatedBreadHttpClient(host, port, hass)
         self.host = self.client.host
         self.devices = {
@@ -68,11 +84,13 @@ class LiberatedBreadWifiManager:
         self._available = False
         self._last_success: datetime | None = None
         self._last_error: str | None = None
+        self._last_rediscovery: float = 0.0
 
     async def async_start(self) -> None:
         """Start the WiFi manager."""
         self._ready = True
         self._available = True
+        self._last_rediscovery = 0.0
 
     async def async_stop(self) -> None:
         """Stop the WiFi manager."""
@@ -132,6 +150,28 @@ class LiberatedBreadWifiManager:
             self._mark_success()
             return mapped
         except Exception as err:
+            if self._can_attempt_rediscovery():
+                self._last_rediscovery = time.monotonic()
+                _LOGGER.debug(
+                    "Request failed for %s; attempting rediscovery", self.device_id
+                )
+                if await self.rediscover():
+                    try:
+                        if endpoint is not None:
+                            raw = await self.client.request(
+                                endpoint, **self._path_params(device_id)
+                            )
+                        else:
+                            raw = await self._request_state_fallback(
+                                entity, device_id
+                            )
+                        mapped = self._map_state(entity, raw)
+                        self.devices[device_id].state[entity.name] = mapped
+                        self._mark_success()
+                        return mapped
+                    except Exception as retry_err:
+                        self._mark_failure(retry_err)
+                        raise
             self._mark_failure(err)
             raise
 
@@ -151,6 +191,29 @@ class LiberatedBreadWifiManager:
             self._mark_success()
             return True
         except Exception as err:
+            if self._can_attempt_rediscovery():
+                self._last_rediscovery = time.monotonic()
+                _LOGGER.debug(
+                    "Command failed for %s; attempting rediscovery",
+                    self.device_id,
+                )
+                if await self.rediscover():
+                    try:
+                        if endpoint is None:
+                            await self.client.send_command(
+                                entity, command, **params
+                            )
+                        else:
+                            await self.client.request(
+                                endpoint,
+                                **self._path_params(self.device_id),
+                                payload=params,
+                            )
+                        self._mark_success()
+                        return True
+                    except Exception as retry_err:
+                        self._mark_failure(retry_err)
+                        raise
             self._mark_failure(err)
             raise
 
@@ -258,6 +321,7 @@ class LiberatedBreadWifiManager:
         self._available = True
         self._last_success = datetime.now(timezone.utc)
         self._last_error = None
+        self._last_rediscovery = 0.0
 
     def _mark_failure(self, err: Exception) -> None:
         self._available = False
@@ -266,6 +330,114 @@ class LiberatedBreadWifiManager:
     def mark_unavailable(self, err: Exception) -> None:
         """Mark this WiFi device unavailable after an entity-level failure."""
         self._mark_failure(err)
+
+    def _can_attempt_rediscovery(self) -> bool:
+        """Return True when enough time has passed since the last rediscovery attempt."""
+        return (time.monotonic() - self._last_rediscovery) >= _REDISCOVERY_COOLDOWN
+
+    async def rediscover(self) -> bool:
+        """Attempt SSDP re-resolution using stored identity keys.
+
+        Returns True if a new host:port was found and applied.
+        """
+        if not self._identity:
+            _LOGGER.debug("No identity keys stored; cannot rediscover %s", self.device_id)
+            return False
+        discovery = self.spec.device.discovery
+        if discovery is None:
+            _LOGGER.debug("No discovery config for %s; cannot rediscover", self.device_id)
+            return False
+        try:
+            from .discovery import WifiDiscovery
+
+            found = await WifiDiscovery(discovery, self.hass).discover(timeout=15)
+        except Exception:
+            _LOGGER.warning(
+                "SSDP re-resolution failed for %s", self.device_id, exc_info=True
+            )
+            return False
+
+        matched = self._match_identity(found)
+        if matched is None:
+            _LOGGER.debug(
+                "Rediscovery could not match identity %s for %s",
+                self._identity,
+                self.device_id,
+            )
+            return False
+
+        new_host = matched.host
+        new_port = int(matched.port)
+        if new_host == self.host and new_port == self.port:
+            _LOGGER.debug(
+                "Rediscovery for %s found same host:port %s:%s",
+                self.device_id,
+                new_host,
+                new_port,
+            )
+            return False
+
+        _LOGGER.info(
+            "Rediscovered %s at %s:%s (was %s:%s)",
+            self.device_id,
+            new_host,
+            new_port,
+            self.host,
+            self.port,
+        )
+        self.host = new_host
+        self.port = new_port
+        self.client = LiberatedBreadHttpClient(new_host, new_port, self.hass)
+        self.control_urls = dict(matched.control_urls)
+        device = self.devices.get(self.device_id)
+        if device is not None:
+            device.host = new_host
+            device.port = new_port
+            device.control_urls = dict(matched.control_urls)
+        self._available = True
+        self._last_error = None
+
+        # Persist the new host:port to the config entry so the next restart
+        # uses the resolved address without re-discovering.
+        if self._entry is not None:
+            new_data = dict(self._entry.data)
+            new_data[CONF_HOST] = new_host
+            new_data[CONF_PORT] = new_port
+            new_data[CONF_CONTROL_URLS] = dict(matched.control_urls)
+            new_identity = dict(self._identity)
+            for key in ("udn", "serial", "mac"):
+                if key in matched.identity and key not in new_identity:
+                    new_identity[key] = str(matched.identity[key])
+            new_data[CONF_WIFI_IDENTITY] = new_identity
+            # Update the wifi_devices list too.
+            wifi_devices = new_data.get(CONF_WIFI_DEVICES) or []
+            if wifi_devices:
+                wifi_devices[0] = {
+                    **wifi_devices[0],
+                    "host": new_host,
+                    "port": new_port,
+                    "control_urls": matched.control_urls,
+                    "needs_resolution": False,
+                }
+                new_data[CONF_WIFI_DEVICES] = wifi_devices
+            self.hass.config_entries.async_update_entry(self._entry, data=new_data)
+
+        return True
+
+    def _match_identity(self, devices: list[Any]) -> Any | None:
+        """Match a list of discovered devices against stored identity.
+
+        Uses canonical keys (udn, serial, mac) with normalization so that
+        ``94:10:3e:aa:bb:cc`` matches ``94103EAABBCC`` and case differences
+        in UDN/serial values are handled correctly.
+        """
+        if not devices:
+            return None
+        for device in devices:
+            dev_identity: dict[str, str] = getattr(device, "identity", {})
+            if identity_matches(self._identity, dev_identity):
+                return device
+        return None
 
 
 def _normalize_name(value: str) -> str:

@@ -32,6 +32,7 @@ CONF_HOST = "host"
 CONF_PORT = "port"
 CONF_CONTROL_URLS = "control_urls"
 CONF_WIFI_DEVICES = "wifi_devices"
+CONF_WIFI_IDENTITY = "wifi_identity"
 
 DATA_MANAGER = "manager"
 DATA_SPECS = "specs"

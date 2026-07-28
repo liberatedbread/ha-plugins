@@ -20,7 +20,7 @@
         "description": "Choose a discovered {device_type} device, or enter host details manually.",
         "data": {
           "wifi_device": "Discovered device",
-          "host": "Host",
+          "host": "Host, IP, MAC, or UDN",
           "port": "Port"
         }
       },
@@ -39,7 +39,9 @@
     "error": {
       "no_devices_found": "No matching devices were found.",
       "missing_key": "An encryption key is required for this device type.",
-      "cloud_auth_required": "Cloud authentication is required for this device type."
+      "cloud_auth_required": "Cloud authentication is required for this device type.",
+      "cannot_resolve": "Could not resolve the entered identity to a routable address. Make sure the device is powered on and connected to your network.",
+      "invalid_identity": "The entered value is not a valid MAC address, UDN, or host/IP."
     },
     "abort": {
       "no_specs": "No bundled device specs could be loaded.",
