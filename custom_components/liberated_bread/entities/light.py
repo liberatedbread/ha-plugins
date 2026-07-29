@@ -84,7 +84,6 @@ class LiberatedBreadLightEntity(LiberatedBreadEntity, LightEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on or update the light."""
-        commands = self._entity_def.commands
         set_brightness = self._resolve_command("set_brightness")
         if ATTR_BRIGHTNESS in kwargs and set_brightness:
             brightness = int(kwargs[ATTR_BRIGHTNESS])

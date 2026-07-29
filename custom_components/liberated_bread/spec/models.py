@@ -447,6 +447,7 @@ class DeviceInfo:
     manufacturer: str
     manufacturer_status: ManufacturerStatus
     protocol: Protocol
+    transport: str | None = None
     notes: str | None = None
     identification: Identification | None = None
     discovery: Discovery | None = None
@@ -462,6 +463,7 @@ class DeviceInfo:
             manufacturer=str(data["manufacturer"]),
             manufacturer_status=ManufacturerStatus(data["manufacturer_status"]),
             protocol=Protocol(data["protocol"]),
+            transport=data.get("transport"),
             notes=data.get("notes"),
             identification=Identification.from_dict(data.get("identification")),
             discovery=Discovery.from_dict(data.get("discovery")),

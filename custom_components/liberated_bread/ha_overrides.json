@@ -1,0 +1,328 @@
+{
+  "Belkin Wemo Smart Devices": {
+    "normalize_variants_from_extensions": true,
+    "variant_entities": {
+      "0": [
+        {
+          "platform": "switch",
+          "name": "Relay",
+          "commands": {
+            "turn_on": "SetBinaryState",
+            "turn_off": "SetBinaryState"
+          },
+          "state_topic": "GetBinaryState",
+          "extensions": {
+            "soap_service": "urn:Belkin:service:basicevent:1",
+            "soap_action": "GetBinaryState"
+          }
+        }
+      ],
+      "1": [
+        {
+          "platform": "switch",
+          "name": "Relay",
+          "commands": {
+            "turn_on": "SetBinaryState",
+            "turn_off": "SetBinaryState"
+          },
+          "state_topic": "GetBinaryState",
+          "extensions": {
+            "soap_service": "urn:Belkin:service:basicevent:1",
+            "soap_action": "GetBinaryState"
+          }
+        }
+      ],
+      "2": [
+        {
+          "platform": "switch",
+          "name": "Relay",
+          "commands": {
+            "turn_on": "SetBinaryState",
+            "turn_off": "SetBinaryState"
+          },
+          "state_topic": "GetBinaryState",
+          "extensions": {
+            "soap_service": "urn:Belkin:service:basicevent:1",
+            "soap_action": "GetBinaryState"
+          }
+        },
+        {
+          "platform": "sensor",
+          "name": "Current Power",
+          "device_class": "power",
+          "unit": "mW",
+          "state_topic": "GetInsightParams",
+          "state_mapping": {
+            "value": "currentpower_mw"
+          },
+          "extensions": {
+            "soap_service": "urn:Belkin:service:insight:1",
+            "soap_action": "GetInsightParams"
+          }
+        },
+        {
+          "platform": "sensor",
+          "name": "Today Energy",
+          "device_class": "energy",
+          "unit": "Wh",
+          "state_topic": "GetInsightParams",
+          "state_mapping": {
+            "value": "todaymw"
+          },
+          "extensions": {
+            "soap_service": "urn:Belkin:service:insight:1",
+            "soap_action": "GetInsightParams"
+          }
+        },
+        {
+          "platform": "sensor",
+          "name": "Today On Time",
+          "device_class": "duration",
+          "unit": "s",
+          "state_topic": "GetInsightParams",
+          "state_mapping": {
+            "value": "ontoday"
+          },
+          "extensions": {
+            "soap_service": "urn:Belkin:service:insight:1",
+            "soap_action": "GetInsightParams"
+          }
+        }
+      ],
+      "3": [
+        {
+          "platform": "switch",
+          "name": "Relay",
+          "commands": {
+            "turn_on": "SetBinaryState",
+            "turn_off": "SetBinaryState"
+          },
+          "state_topic": "GetBinaryState",
+          "extensions": {
+            "soap_service": "urn:Belkin:service:basicevent:1",
+            "soap_action": "GetBinaryState"
+          }
+        }
+      ],
+      "4": [
+        {
+          "platform": "light",
+          "name": "Dimmer",
+          "features": ["brightness"],
+          "commands": {
+            "turn_on": "SetBinaryState",
+            "turn_off": "SetBinaryState",
+            "set_brightness": "SetBinaryState"
+          },
+          "state_topic": "GetBinaryState",
+          "extensions": {
+            "soap_service": "urn:Belkin:service:basicevent:1",
+            "soap_action": "GetBinaryState"
+          }
+        }
+      ],
+      "5": [
+        {
+          "platform": "light",
+          "name": "Dimmer",
+          "features": ["brightness"],
+          "commands": {
+            "turn_on": "SetBinaryState",
+            "turn_off": "SetBinaryState",
+            "set_brightness": "SetBinaryState"
+          },
+          "state_topic": "GetBinaryState",
+          "extensions": {
+            "soap_service": "urn:Belkin:service:basicevent:1",
+            "soap_action": "GetBinaryState"
+          }
+        }
+      ],
+      "6": [
+        {
+          "platform": "switch",
+          "name": "Relay",
+          "commands": {
+            "turn_on": "SetBinaryState",
+            "turn_off": "SetBinaryState"
+          },
+          "state_topic": "GetBinaryState",
+          "extensions": {
+            "soap_service": "urn:Belkin:service:basicevent:1",
+            "soap_action": "GetBinaryState"
+          }
+        },
+        {
+          "platform": "binary_sensor",
+          "name": "Sensor Input",
+          "device_class": "connectivity",
+          "state_topic": "GetAttributes",
+          "extensions": {
+            "soap_service": "urn:Belkin:service:deviceevent:1",
+            "soap_action": "GetAttributes"
+          }
+        }
+      ],
+      "7": [
+        {
+          "platform": "switch",
+          "name": "Relay",
+          "commands": {
+            "turn_on": "SetBinaryState",
+            "turn_off": "SetBinaryState"
+          },
+          "state_topic": "GetBinaryState",
+          "extensions": {
+            "soap_service": "urn:Belkin:service:basicevent:1",
+            "soap_action": "GetBinaryState"
+          }
+        }
+      ],
+      "8": [
+        {
+          "platform": "binary_sensor",
+          "name": "Motion",
+          "device_class": "motion",
+          "state_topic": "GetBinaryState",
+          "extensions": {
+            "soap_service": "urn:Belkin:service:basicevent:1",
+            "soap_action": "GetBinaryState"
+          }
+        },
+        {
+          "platform": "switch",
+          "name": "Relay",
+          "commands": {
+            "turn_on": "SetBinaryState",
+            "turn_off": "SetBinaryState"
+          },
+          "state_topic": "GetBinaryState",
+          "extensions": {
+            "soap_service": "urn:Belkin:service:basicevent:1",
+            "soap_action": "GetBinaryState"
+          }
+        }
+      ],
+      "9": [
+        {
+          "platform": "switch",
+          "name": "Relay",
+          "commands": {
+            "turn_on": "SetBinaryState",
+            "turn_off": "SetBinaryState"
+          },
+          "state_topic": "GetBinaryState",
+          "extensions": {
+            "soap_service": "urn:Belkin:service:basicevent:1",
+            "soap_action": "GetBinaryState"
+          }
+        }
+      ],
+      "10": [
+        {
+          "platform": "switch",
+          "name": "Relay",
+          "commands": {
+            "turn_on": "SetBinaryState",
+            "turn_off": "SetBinaryState"
+          },
+          "state_topic": "GetBinaryState",
+          "extensions": {
+            "soap_service": "urn:Belkin:service:basicevent:1",
+            "soap_action": "GetBinaryState"
+          }
+        }
+      ],
+      "11": [
+        {
+          "platform": "switch",
+          "name": "Relay",
+          "commands": {
+            "turn_on": "SetBinaryState",
+            "turn_off": "SetBinaryState"
+          },
+          "state_topic": "GetBinaryState",
+          "extensions": {
+            "soap_service": "urn:Belkin:service:basicevent:1",
+            "soap_action": "GetBinaryState"
+          }
+        }
+      ],
+      "12": [
+        {
+          "platform": "switch",
+          "name": "Relay",
+          "commands": {
+            "turn_on": "SetBinaryState",
+            "turn_off": "SetBinaryState"
+          },
+          "state_topic": "GetBinaryState",
+          "extensions": {
+            "soap_service": "urn:Belkin:service:basicevent:1",
+            "soap_action": "GetBinaryState"
+          }
+        }
+      ],
+      "13": [
+        {
+          "platform": "switch",
+          "name": "Relay",
+          "commands": {
+            "turn_on": "SetBinaryState",
+            "turn_off": "SetBinaryState"
+          },
+          "state_topic": "GetBinaryState",
+          "extensions": {
+            "soap_service": "urn:Belkin:service:basicevent:1",
+            "soap_action": "GetBinaryState"
+          }
+        }
+      ],
+      "14": [
+        {
+          "platform": "switch",
+          "name": "Relay",
+          "commands": {
+            "turn_on": "SetBinaryState",
+            "turn_off": "SetBinaryState"
+          },
+          "state_topic": "GetBinaryState",
+          "extensions": {
+            "soap_service": "urn:Belkin:service:basicevent:1",
+            "soap_action": "GetBinaryState"
+          }
+        }
+      ],
+      "15": [
+        {
+          "platform": "switch",
+          "name": "Relay",
+          "commands": {
+            "turn_on": "SetBinaryState",
+            "turn_off": "SetBinaryState"
+          },
+          "state_topic": "GetBinaryState",
+          "extensions": {
+            "soap_service": "urn:Belkin:service:basicevent:1",
+            "soap_action": "GetBinaryState"
+          }
+        }
+      ]
+    }
+  },
+  "Magic Display": {
+    "identification": {
+      "local_name_prefix": ""
+    }
+  },
+  "Shining Glasses": {
+    "identification": {
+      "local_name_prefix": ""
+    }
+  },
+  "Shining Mask": {
+    "identification": {
+      "local_name_prefix": ""
+    }
+  }
+}

@@ -380,6 +380,11 @@ def _spec_is_cloud_only(spec: DeviceSpec) -> bool:
     return all(method.type == "cloud" for method in discovery.methods)
 
 
+def _is_mac_address(value: str) -> bool:
+    """Return True if *value* looks like a MAC address (six hex-octet groups)."""
+    return bool(re.fullmatch(r"(?:[0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}", value))
+
+
 def _wifi_device_key(device: DiscoveredDevice) -> str:
     mac = device.identity.get("mac") or device.identity.get("macAddress")
     if mac:
