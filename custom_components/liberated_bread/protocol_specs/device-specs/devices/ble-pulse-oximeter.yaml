@@ -1,0 +1,43 @@
+# BLE Pulse Oximeter (SP001/BerryMed) — Device Spec
+# Generated from static analysis of com.wakeup.smartspo (Wearfit BO)
+# APK source: apkeep (Google Play mirror)
+# APK SHA-256: 37834803 bytes bare APK
+
+device:
+  name: "BLE Fingertip Pulse Oximeter (SP001 / BerryMed)"
+  manufacturer: "Manridy (likely ODM)"
+  manufacturer_status: "active"
+  protocol: "ble"
+  notes: >
+    Uses standard Nordic UART service. Data format for SpO2/PR/PI readings
+    is sent as notifications on UART TX characteristic.
+    Packet size: 20 bytes (MTU-3).
+    Data parsing via chignon package (BroadcastCommand, BroadcastData, DataPacket).
+
+    Expected measurements: SpO2%, pulse rate (BPM), perfusion index (%).
+
+    Research status: APK acquired, decompiled. Nordic UART service UUIDs
+    recovered. Data frame format TBD — needs HCI snoop.
+    Reference: github.com/jcomas/PulseOximeterSP001 (existing partial implementation).
+
+services:
+  - uuid: "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
+    name: "Nordic UART Service"
+    notes: "Nordic UART service (standard async serial bridge)."
+    characteristics:
+      - uuid: "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
+        name: "UART RX"
+        notes: "RX characteristic (write commands to device)."
+        properties: ["write", "write_without_response"]
+      - uuid: "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
+        name: "UART TX"
+        notes: "TX characteristic (notifications from device)."
+        properties: ["notify"]
+
+  - uuid: "0000fff0-0000-1000-8000-00805f9b34fb"
+    name: "Smart Bracelet Service"
+    notes: "Alternate service also referenced in the Wearfit app."
+    characteristics:
+      - uuid: "0000fff4-0000-1000-8000-00805f9b34fb"
+        name: "Smart Bracelet Measurement"
+        properties: ["write", "notify"]
