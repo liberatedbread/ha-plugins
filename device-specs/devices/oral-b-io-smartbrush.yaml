@@ -1,0 +1,304 @@
+device:
+  name: Oral-B iO Smart Brush
+  manufacturer: Procter & Gamble
+  model: iO Series (3/4/5/6/7/8/9/10)
+  category: health
+  type: electric-toothbrush
+  transport: ble
+  protocol: gatt
+  manufacturer_id: "0xDC00"
+  manufacturer_status: production
+  notes: |
+    Extracted from com.pg.oralb.oralbapp v10.x (211MB APK, decompiled via jadx).
+    Uses A0F0XXXX-5047-4D53-8208-4F72616C2D42 UUID scheme where XXXX is a
+    16-bit short UUID. Suffix "4F72616C2D42" decodes to "Oral-B" in ASCII.
+    Manufacturer ID 0xDC00 = Procter & Gamble (byte 2=-36/decimal, byte 3=0).
+    Protocol versions V001 through V009 across brush generations.
+    Discovery uses manufacturer-specific advertisement data (>14 bytes minimum).
+    Two device classes: Brush (FFxx UUIDs) and Charger (3Cxx UUIDs).
+    Supports OTA firmware updates via dedicated characteristic set.
+
+ble:
+  service_uuid: "A0F0FF00-5047-4D53-8208-4F72616C2D42"
+  characteristics:
+    - uuid: "A0F0FF04-5047-4D53-8208-4F72616C2D42"
+      name: DeviceState
+      type: read
+      description: Current device state (brushing, idle, etc.)
+    - uuid: "A0F0FF05-5047-4D53-8208-4F72616C2D42"
+      name: BatteryLevel
+      type: read
+      description: Battery level percentage
+    - uuid: "A0F0FF06-5047-4D53-8208-4F72616C2D42"
+      name: ButtonState
+      type: notify
+      description: Power and mode button press events
+    - uuid: "A0F0FF07-5047-4D53-8208-4F72616C2D42"
+      name: BrushingMode
+      type: read
+      description: Current brushing mode (12+ modes in V006+)
+    - uuid: "A0F0FF08-5047-4D53-8208-4F72616C2D42"
+      name: BrushingTime
+      type: read
+      description: "Brushing session duration (2 bytes: min, sec)"
+    - uuid: "A0F0FF09-5047-4D53-8208-4F72616C2D42"
+      name: ToothbrushQuadrant
+      type: read
+      description: Current quadrant coverage and progress
+    - uuid: "A0F0FF0A-5047-4D53-8208-4F72616C2D42"
+      name: Smiley
+      type: read
+      description: Brushing quality feedback (1 byte face value)
+    - uuid: "A0F0FF0B-5047-4D53-8208-4F72616C2D42"
+      name: Pressure
+      type: read
+      description: Pressure sensor reading
+    - uuid: "A0F0FF0D-5047-4D53-8208-4F72616C2D42"
+      name: SensorData
+      type: read
+      description: Accelerometer/motion sensor data for position tracking
+    - uuid: "A0F0FF0E-5047-4D53-8208-4F72616C2D42"
+      name: DashboardDataStreamChunk
+      type: notify
+      description: Real-time dashboard data stream chunks
+    - uuid: "A0F0FF10-5047-4D53-8208-4F72616C2D42"
+      name: AccessControl
+      type: write
+      description: BLE access control and pairing management
+    - uuid: "A0F0FF21-5047-4D53-8208-4F72616C2D42"
+      name: Configure
+      type: write
+      description: Metadata read/write (device UUID, FW versions, etc.)
+    - uuid: "A0F0FF22-5047-4D53-8208-4F72616C2D42"
+      name: RTC
+      type: write
+      description: Real-time clock (4 bytes, seconds since 2000-01-01)
+    - uuid: "A0F0FF23-5047-4D53-8208-4F72616C2D42"
+      name: Timezone
+      type: write
+      description: Timezone offset configuration
+    - uuid: "A0F0FF24-5047-4D53-8208-4F72616C2D42"
+      name: BrushTimer
+      type: read
+      description: "Timer state flags (bitmask: prof, quad, tongue, timer)"
+    - uuid: "A0F0FF25-5047-4D53-8208-4F72616C2D42"
+      name: BrushModes
+      type: read
+      description: Available brushing modes bitmap
+    - uuid: "A0F0FF26-5047-4D53-8208-4F72616C2D42"
+      name: QuadrantTimer
+      type: read
+      description: Per-quadrant timing data
+    - uuid: "A0F0FF27-5047-4D53-8208-4F72616C2D42"
+      name: TongueTime
+      type: read
+      description: Tongue cleaning timer duration
+    - uuid: "A0F0FF28-5047-4D53-8208-4F72616C2D42"
+      name: PressureConfiguration
+      type: write
+      description: Pressure sensor config (visual signal, reduced speed)
+    - uuid: "A0F0FF29-5047-4D53-8208-4F72616C2D42"
+      name: SelectedData
+      type: notify
+      description: Session data retrieval (shared UUID for read req + notify)
+    - uuid: "A0F0FF2B-5047-4D53-8208-4F72616C2D42"
+      name: MyColor
+      type: write
+      description: LED ring color (RGB)
+    - uuid: "A0F0FF2C-5047-4D53-8208-4F72616C2D42"
+      name: ConfigureDashboard
+      type: write
+      description: Dashboard display configuration
+    - uuid: "A0F0FF2D-5047-4D53-8208-4F72616C2D42"
+      name: RefillReminder
+      type: write
+      description: Brush head replacement reminder
+    - uuid: "A0F0FF2E-5047-4D53-8208-4F72616C2D42"
+      name: PostBrushingStatisticsConfiguration
+      type: write
+      description: Post-brushing statistics screen configuration
+    - uuid: "A0F03C00-5047-4D53-8208-4F72616C2D42"
+      name: ChargerCommand
+      type: write
+      description: Charger control commands
+    - uuid: "A0F03C01-5047-4D53-8208-4F72616C2D42"
+      name: ChargerRead
+      type: read
+      description: Charger data read (log items, passthrough)
+    - uuid: "A0F03C02-5047-4D53-8208-4F72616C2D42"
+      name: ChargerWrite
+      type: write
+      description: Charger config (WiFi, clock, night light, demo mode)
+    - uuid: "A0F03C03-5047-4D53-8208-4F72616C2D42"
+      name: ChargerStatus
+      type: notify
+      description: Charger status notifications
+    - uuid: "A0F0FF81-5047-4D53-8208-4F72616C2D42"
+      name: OTACommand
+      type: write
+      description: Firmware update command
+    - uuid: "A0F0FF82-5047-4D53-8208-4F72616C2D42"
+      name: OTAPayLoad
+      type: write
+      description: Firmware update data payload
+    - uuid: "A0F0FF83-5047-4D53-8208-4F72616C2D42"
+      name: OTAVerify
+      type: read
+      description: Firmware payload verification
+    - uuid: "A0F0FF84-5047-4D53-8208-4F72616C2D42"
+      name: OTAState
+      type: notify
+      description: Firmware update state machine
+    - uuid: "A0F0FF85-5047-4D53-8208-4F72616C2D42"
+      name: OTATransferSize
+      type: read
+      description: Firmware transfer block size
+
+advertising:
+  discovery_method: manufacturer_data
+  manufacturer_data_format:
+    - byte_offset: 0
+      name: manufacturer_id
+      size: 2
+      description: "0xDC00 (Procter & Gamble)"
+    - byte_offset: 2
+      name: product_type
+      size: 1
+      description: Brush or Charger type identifier
+    - byte_offset: 3
+      name: reserved
+      size: 1
+      description: Always 0x00
+    - byte_offset: 4
+      name: data_length
+      size: 1
+      description: Manufacturer data payload length
+    - byte_offset: 5
+      name: brush_type
+      size: 1
+      description: Brush model variant (iO 3-10)
+    - byte_offset: 6
+      name: state
+      size: 1
+      description: Device state flags
+    - byte_offset: 7
+      name: protocol_version
+      size: 1
+      description: Protocol version (V001-V009)
+    - byte_offset: 8
+      name: battery
+      size: 1
+      description: Battery level
+    - byte_offset: 9
+      name: mode
+      size: 1
+      description: Current brushing mode
+    - byte_offset: 10
+      name: pressure
+      size: 1
+      description: Pressure sensor value
+    - byte_offset: 11
+      name: timer
+      size: 1
+      description: Brushing timer seconds
+    - byte_offset: 12
+      name: smiley
+      size: 1
+      description: Brushing quality smiley
+    - byte_offset: 13
+      name: quadrant
+      size: 1
+      description: Current quadrant
+    - byte_offset: 14
+      name: errors
+      size: 1
+      description: Error flags
+  minimum_length: 14
+
+brushing_modes:
+  - id: 0x00
+    name: OFF
+    protocol: V001-V005
+  - id: 0x01
+    name: DAILY_CLEAN
+    protocol: V001+
+  - id: 0x02
+    name: SENSITIVE
+    protocol: V001+
+  - id: 0x03
+    name: MASSAGE
+    protocol: V001+
+  - id: 0x04
+    name: WHITENING
+    protocol: V001+
+  - id: 0x05
+    name: DEEP_CLEAN
+    protocol: V001+
+  - id: 0x06
+    name: TONGUE_CLEAN
+    protocol: V001+
+  - id: 0x07
+    name: PRO_CLEAN
+    protocol: V001+
+  - id: 0x00
+    name: V006_CLEAN
+    protocol: V006+
+  - id: 0x01
+    name: V006_SOFT
+    protocol: V006+
+  - id: 0x02
+    name: V006_MASSAGE
+    protocol: V006+
+  - id: 0x03
+    name: V006_POLISH
+    protocol: V006+
+  - id: 0x04
+    name: V006_TURBO
+    protocol: V006+
+  - id: 0x05
+    name: V006_SOFT_PLUS
+    protocol: V006+
+  - id: 0x06
+    name: V006_TONGUE
+    protocol: V006+
+  - id: 0x07
+    name: V006_OFF
+    protocol: V006+
+  - id: 0x08
+    name: V006_SETTINGS
+    protocol: V006+
+  - id: 0x0B
+    name: SMART_ADAPT_MODE
+    protocol: V009+
+  - id: 0x0C
+    name: GENTLE_WHITE
+    protocol: V009+
+
+charger:
+  capabilities:
+    - wifi_configuration
+    - clock_display
+    - night_light
+    - ring_color
+    - demo_mode
+    - auto_update
+    - brush_passthrough
+    - touchpad
+    - iot_status
+    - server_mode
+
+protocol_versions:
+  - V001
+  - V002
+  - V003
+  - V004
+  - V005
+  - V006
+  - V007
+  - V008
+  - V009
+
+source:
+  apk: com.pg.oralb.oralbapp v10.x (211MB)
+  decompiled: jadx (25266 classes)
+  date_extracted: "2026-07-28"
