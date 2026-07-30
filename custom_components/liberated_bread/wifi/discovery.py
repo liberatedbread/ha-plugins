@@ -315,17 +315,47 @@ async def _device_from_location(
     host = parsed.hostname or fallback_host
     port = parsed.port or (443 if parsed.scheme == "https" else 80)
     identity, display = _extract_xml_identity(root, method)
+
+    # Issue 7: Filter out non-Wemo devices when ssdp:all is one of the
+    # search targets.  Check the parsed deviceType (variant) against the
+    # non-wildcard search targets.
+    variant = identity.get("variant", "")
+    known_targets = [
+        t for t in method.search_targets
+        if t != "ssdp:all"
+    ]
+    # Fail closed: if we have known targets but no variant could be parsed,
+    # reject the device rather than leaking non-matching UPnP results.
+    if known_targets and not variant:
+        _LOGGER.debug(
+            "SSDP device has no deviceType but known targets exist %s; skipping %s",
+            known_targets,
+            location,
+        )
+        return None
+    if known_targets and not _variant_matches_targets(variant, known_targets):
+        _LOGGER.debug(
+            "SSDP deviceType %s does not match known targets %s; skipping %s",
+            variant,
+            known_targets,
+            location,
+        )
+        return None
+
     control_urls = _extract_control_urls(root, resolved_location, method)
     raw_info = {
         "location": resolved_location,
-        "identity": identity,
+        "identity": dict(identity),  # full identity including variant
         "control_urls": control_urls,
+        "variant": variant,
     }
     stable_identity = {
         key: str(identity[key])
         for key in discovery.identity.stable_keys
         if identity.get(key) is not None
     }
+    # NEVER inject variant into stable_identity — it is a device-type family
+    # label shared by many devices and would cause false-positive identity matches.
     if not stable_identity:
         stable_identity = {key: str(value) for key, value in identity.items() if value}
     return DiscoveredDevice(
@@ -534,3 +564,22 @@ def _child_text(node: ElementTree.Element, name: str) -> str | None:
 
 def _local_name(tag: str) -> str:
     return tag.rsplit("}", 1)[-1]
+
+
+def _variant_matches_targets(variant: str, targets: list[str]) -> bool:
+    """Check whether a parsed deviceType matches any non-wildcard search target.
+
+    A search target like ``urn:Belkin:device:socket:1`` should match deviceTypes
+    that exactly equal it or start with it (the target may be a prefix of the
+    full device-type URN).
+    """
+    if not variant or not targets:
+        return False
+    variant_lower = variant.strip().lower()
+    for target in targets:
+        target_lower = target.strip().lower()
+        if variant_lower == target_lower:
+            return True
+        if variant_lower.startswith(target_lower):
+            return True
+    return False

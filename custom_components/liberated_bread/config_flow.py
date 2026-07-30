@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import re
 from typing import Any
 
@@ -25,18 +24,24 @@ from .const import (
     CONF_PORT,
     CONF_SPEC_NAME,
     CONF_WIFI_DEVICES,
+    CONF_WIFI_IDENTITY,
+    CONF_WIFI_VARIANT,
     DEFAULT_SCAN_TIMEOUT,
     DOMAIN,
 )
 from .spec.loader import load_specs
 from .spec.models import DeviceSpec, Protocol
 from .wifi.discovery import DiscoveredDevice, WifiDiscovery
+from .wifi.identity import (
+    derive_device_key,
+    normalize_identity,
+)
 
 
 class LiberatedBreadConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Liberated Bread."""
 
-    VERSION = 1
+    VERSION = 2
 
     def __init__(self) -> None:
         self._specs: dict[str, DeviceSpec] = {}
@@ -143,13 +148,29 @@ class LiberatedBreadConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             host = (user_input.get(CONF_HOST) or "").strip()
             if host:
                 port = int(user_input.get(CONF_PORT) or _default_wifi_port(spec))
+
+                # Accept MAC address (xx:xx:xx:xx:xx:xx) or UDN string as well as IP.
+                identity_from_manual: dict[str, str] = {}
+                if _is_mac_address(host):
+                    identity_from_manual = {"mac": host.lower()}
+                elif host.lower().startswith("uuid:"):
+                    identity_from_manual = {"udn": host}
+                else:
+                    identity_from_manual = {"host": host}
+
+                # When user enters a MAC/UDN (no routable host), set an empty host
+                # so the next startup attempts SSDP re-resolution.
+                needs_res = _is_mac_address(host) or host.lower().startswith("uuid:")
                 device = DiscoveredDevice(
-                    identity={"host": host},
+                    identity=identity_from_manual,
                     display_name=host,
-                    host=host,
+                    host="" if needs_res else host,
                     port=port,
                     control_urls={},
-                    raw_info={"manual": True},
+                    raw_info={
+                        "manual": True,
+                        "needs_resolution": needs_res,
+                    },
                 )
                 return await self._create_wifi_entry(spec, device)
 
@@ -160,7 +181,8 @@ class LiberatedBreadConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 DEFAULT_SCAN_TIMEOUT
             )
             self._wifi_matches = {
-                _wifi_device_key(device): device for device in devices
+                derive_device_key(device.identity, device.host, device.port): device
+                for device in devices
             }
 
         schema_fields: dict[Any, Any] = {
@@ -241,26 +263,41 @@ class LiberatedBreadConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def _create_wifi_entry(
         self, spec: DeviceSpec, device: DiscoveredDevice
     ) -> FlowResult:
-        device_id = _wifi_device_key(device)
-        await self.async_set_unique_id(f"{DOMAIN}_{self._spec_name}_{device_id}")
+        device_id = derive_device_key(device.identity, device.host, device.port)
+        unique_id = f"{DOMAIN}_{self._spec_name}_{device_id}"
+        await self.async_set_unique_id(unique_id)
         self._abort_if_unique_id_configured()
-        data = {
+
+        # Normalise to canonical identity keys (udn, serial, mac) only.
+        identity = normalize_identity(device.identity)
+        needs_resolution = not bool(device.host)
+
+        # Persist the matched variant key (deviceType) for entity filtering.
+        variant = (device.raw_info.get("variant") or "").strip() or None
+
+        data: dict[str, Any] = {
             CONF_SPEC_NAME: self._spec_name,
             CONF_HOST: device.host,
             CONF_PORT: device.port,
             CONF_CONTROL_URLS: device.control_urls,
+            CONF_WIFI_IDENTITY: identity,
+            CONF_WIFI_VARIANT: variant,
             CONF_WIFI_DEVICES: [
                 {
                     "device_id": device_id,
                     "host": device.host,
                     "port": device.port,
                     "control_urls": device.control_urls,
-                    "identity": device.identity,
+                    "identity": identity,
+                    "variant": variant,
                 }
             ],
         }
+        # Include needs_resolution only when True (avoids cruft for normal entries).
+        if needs_resolution:
+            data[CONF_WIFI_DEVICES][0]["needs_resolution"] = True
         return self.async_create_entry(
-            title=f"{spec.device.name} {device.display_name}",
+            title=f"{spec.device.name} {device.display_name or device_id}",
             data=data,
         )
 
@@ -372,27 +409,18 @@ def _default_wifi_port(spec: DeviceSpec) -> int:
     return 80
 
 
+_MAC_RE = re.compile(
+    r"^([0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}$"
+)
+
+
+def _is_mac_address(value: str) -> bool:
+    """Return True when *value* looks like a MAC address."""
+    return bool(_MAC_RE.match(value.strip()))
+
+
 def _spec_is_cloud_only(spec: DeviceSpec) -> bool:
     discovery = spec.device.discovery
     if discovery is None or not discovery.methods:
         return False
     return all(method.type == "cloud" for method in discovery.methods)
-
-
-def _is_mac_address(value: str) -> bool:
-    """Return True if *value* looks like a MAC address (six hex-octet groups)."""
-    return bool(re.fullmatch(r"(?:[0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}", value))
-
-
-def _wifi_device_key(device: DiscoveredDevice) -> str:
-    mac = device.identity.get("mac") or device.identity.get("macAddress")
-    if mac:
-        return re.sub(r"[^0-9a-f]", "", str(mac).lower())
-    if device.identity:
-        material = "|".join(
-            f"{key}={device.identity[key]}" for key in sorted(device.identity)
-        )
-    else:
-        material = f"{device.host}:{device.port}"
-    digest = hashlib.sha1(material.encode("utf-8")).hexdigest()[:12]
-    return f"wifi_{digest}"

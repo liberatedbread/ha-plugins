@@ -20,18 +20,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: HACS validation
+        # hacs/action's metadata runs docker://ghcr.io/hacs/action:main, so a
+        # uses: ref pin does not pin the actual validation runtime.
         uses: hacs/action@main
         with:
           category: integration
           comment: "false"
-          # Tracked in #4. Ignore only publication checks that cannot pass yet:
-          # - hacsjson and integration_manifest: HACS fetches these via unauthenticated
-          #   raw.githubusercontent.com URLs, which return 404 while the repository is
-          #   private; maintainer resolves by making the repository public.
-          # - brands: maintainer must add custom_components/liberated_bread/brand/icon.png
-          #   or land a liberated_bread entry in home-assistant/brands; ignored on PRs
-          #   and main until that external branding step is complete.
-          # - license: HACS reads GitHub's repository license object from the current
-          #   default branch, where PR #1 is not merged yet; ignored only on PRs and
-          #   expected to pass on main immediately after this import merges.
-          ignore: ${{ github.event_name == 'pull_request' && 'hacsjson integration_manifest brands license' || 'hacsjson integration_manifest brands' }}
