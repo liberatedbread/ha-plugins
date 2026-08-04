@@ -370,7 +370,7 @@ class LiberatedBreadWifiManager:
             from .discovery import WifiDiscovery
 
             found = await WifiDiscovery(discovery, self.hass).discover(timeout=15)
-        except Exception:
+        except Exception:  # noqa: BLE001 - discovery must never break a poll.
             _LOGGER.warning(
                 "SSDP re-resolution failed for %s", self.device_id, exc_info=True
             )
