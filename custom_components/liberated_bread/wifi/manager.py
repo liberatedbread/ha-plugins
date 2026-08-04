@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
 import logging
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 try:
@@ -256,7 +256,7 @@ class LiberatedBreadWifiManager:
 
     def _mark_success(self) -> None:
         self._available = True
-        self._last_success = datetime.now(timezone.utc)
+        self._last_success = datetime.now(UTC)
         self._last_error = None
 
     def _mark_failure(self, err: Exception) -> None:

@@ -9,7 +9,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.12", "3.13"]
+        # homeassistant 2026.2.3 declares Requires-Python >=3.13.2, so pip
+        # cannot resolve any distribution on 3.12.
+        python-version: ["3.13"]
 
     steps:
       - uses: actions/checkout@v4

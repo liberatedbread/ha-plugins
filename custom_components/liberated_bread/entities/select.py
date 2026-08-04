@@ -6,7 +6,7 @@ from homeassistant.components.select import SelectEntity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from ..ble.manager import LiberatedBreadManager
-from ..spec.models import Command, DeviceSpec, EntityDef
+from ..spec.models import DeviceSpec, EntityDef
 from ..wifi.manager import LiberatedBreadWifiManager
 from .base import LiberatedBreadEntity
 from .wifi_base import LiberatedBreadWifiEntity

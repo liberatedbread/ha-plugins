@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import timedelta
-from typing import Any, Callable
+from typing import Any
 
 import yaml
 from bleak import BleakClient
-
 from homeassistant.components import bluetooth
 from homeassistant.components.bluetooth import (
     BluetoothChange,
@@ -21,10 +21,10 @@ from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo as HADeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from ..const import DOMAIN
 from ..codec.crypto import encrypt_aes_128_ecb
 from ..codec.decoder import decode_fields
 from ..codec.encoder import encode_command
+from ..const import DOMAIN
 from ..spec.models import Characteristic, DeviceSpec
 from .scanner import service_info_matches_spec
 
@@ -121,7 +121,9 @@ class LiberatedBreadManager(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
             if not service_info_matches_spec(service_info, spec):
                 continue
             name = service_info.name or spec.device.name
-            existing_state = self.devices.get(address, LiberatedBreadDevice(address, name, spec)).state
+            existing_state = self.devices.get(
+                address, LiberatedBreadDevice(address, name, spec)
+            ).state
             self.devices[address] = LiberatedBreadDevice(
                 address, name, spec, service_info, existing_state
             )
@@ -325,7 +327,7 @@ class LiberatedBreadManager(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
     def _read_secret(self, secret_name: str) -> str:
         secrets_path = self.hass.config.path("secrets.yaml")
         try:
-            with open(secrets_path, "r", encoding="utf-8") as file:
+            with open(secrets_path, encoding="utf-8") as file:
                 secrets = yaml.safe_load(file) or {}
         except FileNotFoundError as err:
             raise ValueError(f"secrets.yaml not found for secret {secret_name}") from err
