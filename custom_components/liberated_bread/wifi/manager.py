@@ -107,13 +107,14 @@ class LiberatedBreadWifiManager:
         self._available = False
         self._last_success: datetime | None = None
         self._last_error: str | None = None
-        self._last_rediscovery: float = 0.0
+        # None means "never attempted" — the first retry is always allowed.
+        self._last_rediscovery: float | None = None
 
     async def async_start(self) -> None:
         """Start the WiFi manager."""
         self._ready = True
         self._available = True
-        self._last_rediscovery = 0.0
+        self._last_rediscovery = None
 
     async def async_stop(self) -> None:
         """Stop the WiFi manager."""
@@ -340,7 +341,7 @@ class LiberatedBreadWifiManager:
         self._available = True
         self._last_success = datetime.now(UTC)
         self._last_error = None
-        self._last_rediscovery = 0.0
+        self._last_rediscovery = None
 
     def _mark_failure(self, err: Exception) -> None:
         self._available = False
@@ -352,6 +353,8 @@ class LiberatedBreadWifiManager:
 
     def _can_attempt_rediscovery(self) -> bool:
         """Return True when enough time has passed since the last rediscovery attempt."""
+        if self._last_rediscovery is None:
+            return True
         return (time.monotonic() - self._last_rediscovery) >= _REDISCOVERY_COOLDOWN
 
     async def rediscover(self) -> bool:

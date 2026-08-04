@@ -348,6 +348,19 @@ async def test_with_rediscovery_raises_when_reresolution_fails() -> None:
     assert manager._last_error
 
 
+def test_fresh_manager_allows_rediscovery_regardless_of_uptime() -> None:
+    """The first rediscovery must not depend on how long the host has been up.
+
+    Regression: _last_rediscovery started at 0.0 and the guard compared
+    ``time.monotonic() - 0.0 >= 300``, so on a machine booted less than five
+    minutes ago (a fresh CI runner, or a just-rebooted HA host) the first
+    rediscovery was silently suppressed.
+    """
+    manager = _manager(_wemo_spec())
+    assert manager._last_rediscovery is None
+    assert manager._can_attempt_rediscovery() is True
+
+
 @pytest.mark.asyncio
 async def test_with_rediscovery_respects_cooldown() -> None:
     manager = _manager(_wemo_spec())
