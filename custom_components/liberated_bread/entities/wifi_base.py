@@ -41,7 +41,9 @@ class LiberatedBreadWifiEntity(Entity):
 
     async def async_update(self) -> None:
         """Poll state from WiFi device."""
-        if self._entity_def.state_topic and not self._entity_def.state_characteristic:
+        # Poll when there is a state_topic (HTTP) OR SOAP extensions (SOAP).
+        has_soap = bool(self._entity_def.extensions.get("soap_action"))
+        if (self._entity_def.state_topic and not self._entity_def.state_characteristic) or has_soap:
             try:
                 state = await self._manager.request_state(
                     self._device_id, self._entity_def

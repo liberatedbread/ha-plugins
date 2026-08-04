@@ -141,7 +141,11 @@ async def test_wifi_discovery_mac_manual_entry_sets_resolution(hass) -> None:
     flow._specs = {"Device": _spec(protocol=Protocol.WIFI)}
     result = await flow.async_step_wifi_discovery({CONF_HOST: "AA:BB:CC:DD:EE:FF"})
     device = result["data"][CONF_WIFI_DEVICES][0]
-    assert device["host"] == "AA:BB:CC:DD:EE:FF"
+    # A MAC is not routable, so it is stored as identity rather than as the
+    # host.  The empty host is what triggers SSDP re-resolution on setup.
+    assert device["host"] == ""
+    assert device["needs_resolution"] is True
+    assert device["identity"] == {"mac": "aa:bb:cc:dd:ee:ff"}
 
 
 @pytest.mark.asyncio

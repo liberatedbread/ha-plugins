@@ -23,7 +23,7 @@ async def async_setup_entry_entities(
         async_add_entities(
             LiberatedBreadWifiSwitchEntity(manager, entity_def, device_id)
             for device_id, device in manager.devices.items()
-            for entity_def in device.spec.entities
+            for entity_def in device.entities
             if entity_def.platform == "switch"
         )
         return
