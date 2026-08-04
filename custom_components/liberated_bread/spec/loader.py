@@ -131,7 +131,7 @@ def _read_protocol(path: Path) -> str | None:
             _LOGGER.warning("Skipping %s: no 'device' mapping found", path.name)
             return None
         return str(device.get("protocol", "")).strip().lower()
-    except Exception:
+    except Exception:  # noqa: BLE001 - malformed specs must not break HA.
         _LOGGER.warning("Skipping unreadable spec %s", path.name, exc_info=True)
         return None
 

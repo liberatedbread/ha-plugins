@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
+import logging
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -35,16 +38,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     spec_name = entry.data.get(CONF_SPEC_NAME)
     spec = specs.get(spec_name)
     if spec is None:
-        import logging
-        _LOGGER = logging.getLogger(__name__)
         _LOGGER.error("Unknown spec %s for config entry %s", spec_name, entry.entry_id)
         return False
 
     if spec.device.protocol == Protocol.WIFI:
-        import logging
-
-        _LOGGER = logging.getLogger(__name__)
-
         wifi_devices = entry.data.get(CONF_WIFI_DEVICES) or []
         device_data = wifi_devices[0] if wifi_devices else {}
         host = device_data.get("host") or entry.data.get(CONF_HOST)
@@ -70,7 +67,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     found = await WifiDiscovery(spec.device.discovery, hass).discover(
                         timeout=15
                     )
-                except Exception:
+                except Exception:  # noqa: BLE001 - discovery must not block setup.
                     found = []
                     _LOGGER.warning(
                         "SSDP re-resolution failed for %s", spec_name, exc_info=True
@@ -141,6 +138,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
             wifi_variant = entry.data.get(CONF_WIFI_VARIANT) or device_data.get("variant")
 
+        if resolved:
+            variant_key = wifi_variant
+        else:
+            variant_key = entry.data.get(CONF_WIFI_VARIANT) or device_data.get("variant")
+
         manager = LiberatedBreadWifiManager(
             hass,
             spec,
@@ -149,7 +151,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             port,
             control_urls,
             identity=wifi_identity,
-            variant_key=wifi_variant if resolved else (entry.data.get(CONF_WIFI_VARIANT) or device_data.get("variant")),
+            variant_key=variant_key,
             entry=entry,
         )
     else:
@@ -217,7 +219,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 new_id = derive_device_key(
                     fake_device.identity, fake_device.host, fake_device.port
                 )
-            except Exception:
+            except Exception:  # noqa: BLE001 - fall back to the old id on any error.
                 new_id = old_id
 
             new_data = dict(entry.data)

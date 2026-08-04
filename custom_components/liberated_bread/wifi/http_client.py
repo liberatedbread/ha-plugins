@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import TYPE_CHECKING, Any
 
@@ -58,7 +57,7 @@ class LiberatedBreadHttpClient:
                     except (aiohttp.ContentTypeError, ValueError):
                         _LOGGER.debug("Invalid JSON response from %s", url)
                 return await response.text()
-        except (aiohttp.ClientError, asyncio.TimeoutError) as err:
+        except (TimeoutError, aiohttp.ClientError) as err:
             raise RuntimeError(
                 f"HTTP {endpoint.method} {url} failed for endpoint {endpoint.name}: {err}"
             ) from err
